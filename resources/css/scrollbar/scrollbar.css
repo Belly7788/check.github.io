@@ -1,0 +1,19 @@
+
+/* Style the scrollbar for Webkit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+
+    border-radius: 10px; /* Rounded edges */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c2bebe; /* Scrollbar thumb color */
+    border-radius: 10px; /* Rounded thumb */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #919090; /* Darker color on hover */
+}
