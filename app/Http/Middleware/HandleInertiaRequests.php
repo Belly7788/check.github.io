@@ -42,6 +42,7 @@ class HandleInertiaRequests extends Middleware
                     'image' => Auth::user()->image,
                 ] : null,
             ],
+            
         ]);
     }
 }

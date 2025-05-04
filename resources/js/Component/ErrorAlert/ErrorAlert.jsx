@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { getDarkModeClass } from "../../utils/darkModeUtils";
-import { FiAlertCircle } from "react-icons/fi";
-import { useTranslation } from "react-i18next";
-import Spinner from "../spinner/spinner";
+import { FiAlertCircle } from "react-icons/fi"; // Icon from react-icons
+import { useTranslation } from "react-i18next"; // Import useTranslation
 
-function ConfirmAlert({ isOpen, onClose, onConfirm, title, message, darkMode, isLoading = false }) {
+function ErrorAlert({ isOpen, onClose, title, message, darkMode }) {
     const [isClosing, setIsClosing] = useState(false);
-    const { t } = useTranslation();
+    const { t } = useTranslation(); // Initialize translation hook
 
+    // Inject CSS into the document head when the component mounts
     useEffect(() => {
         const style = document.createElement("style");
         style.textContent = `
@@ -28,25 +28,19 @@ function ConfirmAlert({ isOpen, onClose, onConfirm, title, message, darkMode, is
         `;
         document.head.appendChild(style);
 
+        // Cleanup: Remove the style tag when the component unmounts
         return () => {
             document.head.removeChild(style);
         };
-    }, []);
+    }, []); // Empty dependency array ensures this runs only once on mount
 
+    // Handle closing with animation
     const handleClose = () => {
         setIsClosing(true);
         setTimeout(() => {
             setIsClosing(false);
             onClose();
-        }, 300);
-    };
-
-    const handleConfirm = () => {
-        setIsClosing(true);
-        setTimeout(() => {
-            setIsClosing(false);
-            onConfirm();
-        }, 300);
+        }, 300); // Match animation duration
     };
 
     if (!isOpen) return null;
@@ -68,14 +62,14 @@ function ConfirmAlert({ isOpen, onClose, onConfirm, title, message, darkMode, is
                     <FiAlertCircle
                         className={`mr-2 h-6 w-6 ${getDarkModeClass(
                             darkMode,
-                            "text-[#ff8800]",
-                            "text-[#ff8800]"
+                            "text-red-500",
+                            "text-red-500"
                         )}`}
                     />
                     <h3 className="text-lg font-semibold">{title}</h3>
                 </div>
                 <p className="mb-6 text-sm">{message}</p>
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end">
                     <button
                         onClick={handleClose}
                         className={`px-4 py-2 rounded-md transition-colors duration-200 ${getDarkModeClass(
@@ -86,28 +80,14 @@ function ConfirmAlert({ isOpen, onClose, onConfirm, title, message, darkMode, is
                     >
                         {t("cancel")}
                     </button>
-                    <button
-                        onClick={handleConfirm}
-                        disabled={isLoading}
-                        className={`px-4 py-2 rounded-md border transition-colors duration-200 flex items-center justify-center ${getDarkModeClass(
-                            darkMode,
-                            "border-[#ff8800] text-[#ff8800] hover:bg-[#ff8800] hover:text-white",
-                            "border-[#ff8800] text-[#ff8800] hover:bg-[#ff8800] hover:text-white"
-                        )} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                        {isLoading ? (
-                            <Spinner width="16px" height="16px" className="mr-2" />
-                        ) : (
-                            t("confirm")
-                        )}
-                    </button>
                 </div>
             </div>
         </div>
     );
 }
 
-function showConfirmAlert({ title, message, onConfirm, darkMode = false, isLoading = false }) {
+// Helper function to easily trigger the error alert
+function showErrorAlert({ title, message, darkMode = false }) {
     return new Promise((resolve) => {
         const AlertWrapper = () => {
             const [isOpen, setIsOpen] = React.useState(true);
@@ -117,21 +97,13 @@ function showConfirmAlert({ title, message, onConfirm, darkMode = false, isLoadi
                 resolve(false);
             };
 
-            const handleConfirm = () => {
-                setIsOpen(false);
-                onConfirm();
-                resolve(true);
-            };
-
             return (
-                <ConfirmAlert
+                <ErrorAlert
                     isOpen={isOpen}
                     onClose={handleClose}
-                    onConfirm={handleConfirm}
                     title={title}
                     message={message}
                     darkMode={darkMode}
-                    isLoading={isLoading}
                 />
             );
         };
@@ -142,6 +114,7 @@ function showConfirmAlert({ title, message, onConfirm, darkMode = false, isLoadi
         const root = createRoot(mountPoint);
         root.render(<AlertWrapper />);
 
+        // Cleanup function
         return () => {
             root.unmount();
             document.body.removeChild(mountPoint);
@@ -149,4 +122,4 @@ function showConfirmAlert({ title, message, onConfirm, darkMode = false, isLoadi
     });
 }
 
-export { showConfirmAlert };
+export { showErrorAlert };

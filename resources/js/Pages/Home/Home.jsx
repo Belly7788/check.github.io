@@ -1,11 +1,15 @@
 // Home.jsx
 import { Link, Head } from "@inertiajs/react";
 import { getDarkModeClass } from "../../utils/darkModeUtils"; // Import the utility function
-
+import { useTranslation } from "react-i18next"; // Import useTranslation
+import i18n from "i18next"; // Import i18next instance
 export default function Home({ darkMode }) {
+
+    const { t } = useTranslation(); // Initialize translation hook
+
     return (
         <>
-            <Head title="Dashboad"/>
+            <Head title={t("dashboard")}/>
             <div
                 className={`min-h-screen w-full flex items-center justify-center p-6 ${getDarkModeClass(
                     darkMode,
@@ -117,4 +121,5 @@ export default function Home({ darkMode }) {
     );
 }
 
-Home.title = "Dashboad"; // Updated static title for the page
+// Define the title as a translation key
+Home.title = "dashboard";
