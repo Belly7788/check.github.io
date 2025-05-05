@@ -4,18 +4,18 @@ import { EzeLogo } from "../Logo/EzeLogo";
 import { Logo } from "../Logo/EzeLogo";
 import "../../css/scrollbar/scrollbar.css";
 import { showConfirmAlert } from "../Component/Confirm-Alert/Confirm-Alert";
-import { useTranslation } from "react-i18next"; // Import useTranslation
+import { useTranslation } from "react-i18next";
 
 export function Layout({ children }) {
   const { props } = usePage();
   const { auth } = props;
   const user = auth?.user || {};
 
-  const { t, i18n } = useTranslation(); // Initialize translation hook
+  const { t, i18n } = useTranslation();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false); // State for language dropdown
+  const [languageOpen, setLanguageOpen] = useState(false);
   const [poOpen, setPoOpen] = useState(false);
   const [piOpen, setPiOpen] = useState(false);
   const [productOpen, setProductOpen] = useState(false);
@@ -29,6 +29,9 @@ export function Layout({ children }) {
   });
   const { url } = usePage();
 
+  // Extract base path without query parameters
+  const basePath = url.split("?")[0]; // Removes query parameters
+
   const firstLetter = user.username ? user.username.charAt(0).toUpperCase() : "U";
 
   useEffect(() => {
@@ -41,13 +44,14 @@ export function Layout({ children }) {
   }, [darkMode]);
 
   useEffect(() => {
-    setActiveMenu(url);
-    if (url.startsWith("/product")) setProductOpen(true);
-    if (url.startsWith("/po")) setPoOpen(true);
-    if (url.startsWith("/pi")) setPiOpen(true);
-    if (url.startsWith("/settings")) setSettingsOpen(true);
-    if (url.startsWith("/settings/status")) setStatusOpen(true);
-  }, [url]);
+    // Set active menu based on basePath
+    setActiveMenu(basePath);
+    if (basePath.startsWith("/product")) setProductOpen(true);
+    if (basePath.startsWith("/po")) setPoOpen(true);
+    if (basePath.startsWith("/pi")) setPiOpen(true);
+    if (basePath.startsWith("/settings")) setSettingsOpen(true);
+    if (basePath.startsWith("/settings/status")) setStatusOpen(true);
+  }, [basePath]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -90,7 +94,6 @@ export function Layout({ children }) {
       darkMode: darkMode,
     });
   };
-
 
   const title = React.Children.map(children, (child) => child.type.title)?.[0] || "";
   const subtitle = React.Children.map(children, (child) => child.type.subtitle)?.[0] || "";
@@ -139,7 +142,7 @@ export function Layout({ children }) {
             }
             text={t("dashboard")}
             sidebarOpen={sidebarOpen}
-            active={activeMenu === "/"}
+            active={basePath === "/"}
             onClick={() => setActiveMenu("/")}
             darkMode={darkMode}
           />
@@ -149,7 +152,7 @@ export function Layout({ children }) {
             <button
               onClick={toggleProduct}
               className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                activeMenu.startsWith("/product")
+                basePath.startsWith("/product")
                   ? darkMode
                     ? "bg-gray-700 text-white"
                     : "bg-white text-[#ff8800]"
@@ -218,7 +221,7 @@ export function Layout({ children }) {
                   }
                   text={t("list_products")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/product/productlist"}
+                  active={basePath === "/product/productlist"}
                   onClick={() => setActiveMenu("/product/productlist")}
                   darkMode={darkMode}
                 />
@@ -242,7 +245,7 @@ export function Layout({ children }) {
                   }
                   text={t("product_cost")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/product/product_cost"}
+                  active={basePath === "/product/product_cost"}
                   onClick={() => setActiveMenu("/product/product_cost")}
                   darkMode={darkMode}
                 />
@@ -255,7 +258,7 @@ export function Layout({ children }) {
             <button
               onClick={togglePo}
               className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                activeMenu.startsWith("/po")
+                basePath.startsWith("/po")
                   ? darkMode
                     ? "bg-gray-700 text-white"
                     : "bg-white text-[#ff8800]"
@@ -324,7 +327,7 @@ export function Layout({ children }) {
                   }
                   text={t("create_po")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/po/create"}
+                  active={basePath === "/po/create"}
                   onClick={() => setActiveMenu("/po/create")}
                   darkMode={darkMode}
                 />
@@ -344,11 +347,13 @@ export function Layout({ children }) {
                         strokeWidth={2}
                         d="M9 5l7 7-7 7"
                       />
+
+
                     </svg>
                   }
                   text={t("list_po")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/po/list"}
+                  active={basePath === "/po/list"}
                   onClick={() => setActiveMenu("/po/list")}
                   darkMode={darkMode}
                 />
@@ -360,8 +365,8 @@ export function Layout({ children }) {
           <div className="w-full">
             <button
               onClick={togglePi}
-              className={`flex items-center p-2 pl-3 downgradient w-full rounded-lg transition-colors duration-200 ${
-                activeMenu.startsWith("/pi")
+              className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
+                basePath.startsWith("/pi")
                   ? darkMode
                     ? "bg-gray-700 text-white"
                     : "bg-white text-[#ff8800]"
@@ -433,7 +438,7 @@ export function Layout({ children }) {
                   }
                   text={t("create_pi")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/pi/create"}
+                  active={basePath === "/pi/create"}
                   onClick={() => setActiveMenu("/pi/create")}
                   darkMode={darkMode}
                 />
@@ -457,7 +462,7 @@ export function Layout({ children }) {
                   }
                   text={t("list_pi")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/pi/list"}
+                  active={basePath === "/pi/list"}
                   onClick={() => setActiveMenu("/pi/list")}
                   darkMode={darkMode}
                 />
@@ -485,7 +490,7 @@ export function Layout({ children }) {
             }
             text={t("payment")}
             sidebarOpen={sidebarOpen}
-            active={activeMenu === "/payment"}
+            active={basePath === "/payment"}
             onClick={() => setActiveMenu("/payment")}
             darkMode={darkMode}
           />
@@ -495,7 +500,7 @@ export function Layout({ children }) {
             <button
               onClick={toggleSettings}
               className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                activeMenu.startsWith("/settings")
+                basePath.startsWith("/settings")
                   ? darkMode
                     ? "bg-gray-700 text-white"
                     : "bg-white text-[#ff8800]"
@@ -570,8 +575,8 @@ export function Layout({ children }) {
                   }
                   text={t("user")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/settings/user-management"}
-                  onClick={() => setActiveMenu("/settings/user-management")}
+                  active={basePath === "/settings/user/user-management"}
+                  onClick={() => setActiveMenu("/settings/user/user-management")}
                   darkMode={darkMode}
                 />
                 <NavItem
@@ -594,15 +599,15 @@ export function Layout({ children }) {
                   }
                   text={t("role")}
                   sidebarOpen={sidebarOpen}
-                  active={activeMenu === "/settings/role-management"}
-                  onClick={() => setActiveMenu("/settings/role-management")}
+                  active={basePath === "/settings/role/role-management"}
+                  onClick={() => setActiveMenu("/settings/role/role-management")}
                   darkMode={darkMode}
                 />
                 <div className="w-full">
                   <button
                     onClick={toggleStatus}
                     className={`flex items-center p-2 w-full rounded-lg transition-colors duration-200 ${
-                      activeMenu.startsWith("/settings/status")
+                      basePath.startsWith("/settings/status")
                         ? darkMode
                           ? "bg-gray-700 text-white"
                           : "bg-white text-[#ff8800]"
@@ -669,7 +674,7 @@ export function Layout({ children }) {
                         }
                         text={t("branch")}
                         sidebarOpen={sidebarOpen}
-                        active={activeMenu === "/settings/status/branch"}
+                        active={basePath === "/settings/status/branch"}
                         onClick={() => setActiveMenu("/settings/status/branch")}
                         darkMode={darkMode}
                       />
@@ -693,7 +698,7 @@ export function Layout({ children }) {
                         }
                         text={t("company")}
                         sidebarOpen={sidebarOpen}
-                        active={activeMenu === "/settings/status/company"}
+                        active={basePath === "/settings/status/company"}
                         onClick={() => setActiveMenu("/settings/status/company")}
                         darkMode={darkMode}
                       />
@@ -717,7 +722,7 @@ export function Layout({ children }) {
                         }
                         text={t("method")}
                         sidebarOpen={sidebarOpen}
-                        active={activeMenu === "/settings/status/method"}
+                        active={basePath === "/settings/status/method"}
                         onClick={() => setActiveMenu("/settings/status/method")}
                         darkMode={darkMode}
                       />
@@ -741,7 +746,7 @@ export function Layout({ children }) {
                         }
                         text={t("shipment")}
                         sidebarOpen={sidebarOpen}
-                        active={activeMenu === "/settings/status/shipment"}
+                        active={basePath === "/settings/status/shipment"}
                         onClick={() => setActiveMenu("/settings/status/shipment")}
                         darkMode={darkMode}
                       />
@@ -765,7 +770,7 @@ export function Layout({ children }) {
                         }
                         text={t("warehouse")}
                         sidebarOpen={sidebarOpen}
-                        active={activeMenu === "/settings/status/warehouse"}
+                        active={basePath === "/settings/status/warehouse"}
                         onClick={() => setActiveMenu("/settings/status/warehouse")}
                         darkMode={darkMode}
                       />
@@ -806,254 +811,253 @@ export function Layout({ children }) {
                   <rect x="14" y="14" width="6" height="6" rx="1" />
                 </svg>
               </button>
-                <h1 className="text-xl font-semibold">
-                    {t(title)}
-                    {subtitle && (
-                        <>
-                        <span className="inline-block mx-2">→</span>
-                        {t(subtitle)}
-                        </>
-                    )}
-                </h1>
+              <h1 className="text-xl font-semibold">
+                {t(title)}
+                {subtitle && (
+                  <>
+                    <span className="inline-block mx-2">→</span>
+                    {t(subtitle)}
+                  </>
+                )}
+              </h1>
             </div>
 
             <div className="flex items-center space-x-4">
-                {/* Language Switcher */}
-                <div className="relative">
-                    <button
-                    onClick={toggleLanguage}
-                    className={`flex items-center space-x-2 focus:outline-none px-2 py-1 rounded-md transition-colors duration-200 ${
-                        darkMode
-                        ? " text-gray-200 hover:bg-gray-700"
-                        : " text-gray-800 hover:bg-gray-200"
-                    }`}
-                    >
-                    <span className="w-6 h-6 rounded-full flex items-center justify-center">
-                        <img
-                        src={
-                            i18n.language === "en"
-                            ? "https://flagcdn.com/w20/gb.png"
-                            : i18n.language === "km"
-                            ? "https://flagcdn.com/w20/kh.png"
-                            : "https://flagcdn.com/w20/cn.png"
-                        }
-                        srcset={
-                            i18n.language === "en"
-                            ? "https://flagcdn.com/48x36/gb.png 2x, https://flagcdn.com/72x54/gb.png 3x"
-                            : i18n.language === "km"
-                            ? "https://flagcdn.com/48x36/kh.png 2x, https://flagcdn.com/72x54/kh.png 3x"
-                            : "https://flagcdn.com/48x36/cn.png 2x, https://flagcdn.com/72x54/cn.png 3x"
-
-                        }
-                        alt="Language flag"
-                        />
-                    </span>
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`h-4 w-4 transition-transform duration-200 ${
-                        languageOpen ? "transform rotate-180" : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                    >
-                        <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
-                    </button>
-
-                    {languageOpen && (
-                    <div
-                        className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg py-2 z-20 border ${
-                        darkMode
-                            ? "bg-gray-800 text-gray-200 border-gray-700"
-                            : "bg-white text-gray-800 border-gray-200"
-                        }`}
-                    >
-                        <button
-                        onClick={() => changeLanguage("en")}
-                        className={`flex items-center px-4 py-2 text-sm w-full text-left transition-colors duration-200 ${
-                            darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                        }`}
-                        >
-                        <img
-                            src="https://flagcdn.com/w20/gb.png"
-                            srcset="https://flagcdn.com/w40/gb.png 2x"
-                            alt="English flag"
-                            className="mr-2"
-                        />
-                        English
-                        </button>
-                        <button
-                        onClick={() => changeLanguage("km")}
-                        className={`flex items-center px-4 py-2 text-sm w-full text-left transition-colors duration-200 ${
-                            darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                        }`}
-                        >
-                        <img
-                            src="https://flagcdn.com/w20/kh.png"
-                            srcset="https://flagcdn.com/w40/kh.png 2x"
-                            alt="Khmer flag"
-                            className="mr-2"
-                        />
-                        ខ្មែរ
-                        </button>
-                        <button
-                        onClick={() => changeLanguage("zh")}
-                        className={`flex items-center px-4 py-2 text-sm w-full text-left transition-colors duration-200 ${
-                            darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                        }`}
-                        >
-                        <img
-                            src="https://flagcdn.com/w20/cn.png"
-                            srcset="https://flagcdn.com/w40/cn.png 2x"
-                            alt="Chinese flag"
-                            className="mr-2"
-                        />
-                        中文
-                        </button>
-                    </div>
-                    )}
-                </div>
-
-                {/* Dark Mode Toggle Button (Unchanged) */}
+              {/* Language Switcher */}
+              <div className="relative">
                 <button
-                    onClick={toggleDarkMode}
-                    className="relative w-[52px] h-6 bg-gray-300 rounded-full flex items-center p-1 transition-colors duration-300"
+                  onClick={toggleLanguage}
+                  className={`flex items-center space-x-2 focus:outline-none px-2 py-1 rounded-md transition-colors duration-200 ${
+                    darkMode
+                      ? " text-gray-200 hover:bg-gray-700"
+                      : " text-gray-800 hover:bg-gray-200"
+                  }`}
                 >
-                    <div
-                    className={`absolute w-5 h-5 rounded-full transition-transform duration-300 flex items-center justify-center ${
-                        darkMode
-                        ? "translate-x-6 bg-gray-600"
-                        : "translate-x-0 bg-orange-400"
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center">
+                    <img
+                      src={
+                        i18n.language === "en"
+                          ? "https://flagcdn.com/w20/gb.png"
+                          : i18n.language === "km"
+                          ? "https://flagcdn.com/w20/kh.png"
+                          : "https://flagcdn.com/w20/cn.png"
+                      }
+                      srcSet={
+                        i18n.language === "en"
+                          ? "https://flagcdn.com/48x36/gb.png 2x, https://flagcdn.com/72x54/gb.png 3x"
+                          : i18n.language === "km"
+                          ? "https://flagcdn.com/48x36/kh.png 2x, https://flagcdn.com/72x54/kh.png 3x"
+                          : "https://flagcdn.com/48x36/cn.png 2x, https://flagcdn.com/72x54/cn.png 3x"
+                      }
+                      alt="Language flag"
+                    />
+                  </span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 transition-transform duration-200 ${
+                      languageOpen ? "transform rotate-180" : ""
                     }`}
-                    >
-                    {darkMode ? (
-                        <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                        />
-                        </svg>
-                    ) : (
-                        <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                        />
-                        </svg>
-                    )}
-                    </div>
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
 
-                {/* Profile Dropdown */}
-                <div className="relative">
-                    <button
-                    onClick={toggleProfile}
-                    className={`flex items-center space-x-2 focus:outline-none px-2 py-1 rounded-md transition-colors duration-200 ${
-                        darkMode
-                        ? " text-gray-200 hover:bg-gray-700"
-                        : " text-gray-800 hover:bg-gray-200"
+                {languageOpen && (
+                  <div
+                    className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg py-2 z-20 border ${
+                      darkMode
+                        ? "bg-gray-800 text-gray-200 border-gray-700"
+                        : "bg-white text-gray-800 border-gray-200"
                     }`}
+                  >
+                    <button
+                      onClick={() => changeLanguage("en")}
+                      className={`flex items-center px-4 py-2 text-sm w-full text-left transition-colors duration-200 ${
+                        darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                      }`}
                     >
-                    <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
-                        {user.image ? (
-                        <img
-                            src={user.image}
-                            alt="User profile"
-                            className="w-full h-full object-cover"
-                        />
-                        ) : (
-                        <div
-                            className={`w-full h-full flex items-center justify-center text-white font-semibold text-lg ${
-                            darkMode ? "bg-gray-600" : "bg-orange-500"
-                            }`}
-                        >
-                            {firstLetter}
-                        </div>
-                        )}
-                    </div>
-                    {sidebarOpen && (
-                        <span className="hidden md:inline-block text-sm">{t("profile")}</span>
-                    )}
+                      <img
+                        src="https://flagcdn.com/w20/gb.png"
+                        srcSet="https://flagcdn.com/w40/gb.png 2x"
+                        alt="English flag"
+                        className="mr-2"
+                      />
+                      English
+                    </button>
+                    <button
+                      onClick={() => changeLanguage("km")}
+                      className={`flex items-center px-4 py-2 text-sm w-full text-left transition-colors duration-200 ${
+                        darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <img
+                        src="https://flagcdn.com/w20/kh.png"
+                        srcSet="https://flagcdn.com/w40/kh.png 2x"
+                        alt="Khmer flag"
+                        className="mr-2"
+                      />
+                      ខ្មែរ
+                    </button>
+                    <button
+                      onClick={() => changeLanguage("zh")}
+                      className={`flex items-center px-4 py-2 text-sm w-full text-left transition-colors duration-200 ${
+                        darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <img
+                        src="https://flagcdn.com/w20/cn.png"
+                        srcSet="https://flagcdn.com/w40/cn.png 2x"
+                        alt="Chinese flag"
+                        className="mr-2"
+                      />
+                      中文
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Dark Mode Toggle Button */}
+              <button
+                onClick={toggleDarkMode}
+                className="relative w-[52px] h-6 bg-gray-300 rounded-full flex items-center p-1 transition-colors duration-300"
+              >
+                <div
+                  className={`absolute w-5 h-5 rounded-full transition-transform duration-300 flex items-center justify-center ${
+                    darkMode
+                      ? "translate-x-6 bg-gray-600"
+                      : "translate-x-0 bg-orange-400"
+                  }`}
+                >
+                  {darkMode ? (
                     <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`h-4 w-4 transition-transform duration-200 ${
-                        profileOpen ? "transform rotate-180" : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                        <path
+                      <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                        />
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                      />
                     </svg>
-                    </button>
-
-                    {profileOpen && (
-                    <div
-                        className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg py-2 z-20 border ${
-                        darkMode
-                            ? "bg-gray-800 text-gray-200 border-gray-700"
-                            : "bg-white text-gray-800 border-gray-200"
-                        }`}
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                        <p
-                        className={`block px-4 py-2 text-sm ${
-                            darkMode ? "text-gray-200" : "text-gray-700"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={toggleProfile}
+                  className={`flex items-center space-x-2 focus:outline-none px-2 py-1 rounded-md transition-colors duration-200 ${
+                    darkMode
+                      ? " text-gray-200 hover:bg-gray-700"
+                      : " text-gray-800 hover:bg-gray-200"
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt="User profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`w-full h-full flex items-center justify-center text-white font-semibold text-lg ${
+                          darkMode ? "bg-gray-600" : "bg-orange-500"
                         }`}
-                        >
-                        {user.username || "User"}
-                        </p>
-                        <Link
-                        href="/settings"
-                        className={`block px-4 py-2 text-sm transition-colors duration-200 ${
-                            darkMode
-                            ? "text-gray-200 hover:bg-gray-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                        >
-                        {t("settings")}
-                        </Link>
-                        <button
-                        type="button"
-                        onClick={handleLogout}
-                        className={`w-full text-start block px-4 py-2 text-sm transition-colors duration-200 ${
-                            darkMode
-                            ? "text-gray-200 hover:bg-gray-700"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
-                        >
-                        {t("sign_out")}
-                        </button>
-                    </div>
+                      >
+                        {firstLetter}
+                      </div>
                     )}
-                </div>
-                </div>
+                  </div>
+                  {sidebarOpen && (
+                    <span className="hidden md:inline-block text-sm">{t("profile")}</span>
+                  )}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 transition-transform duration-200 ${
+                      profileOpen ? "transform rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {profileOpen && (
+                  <div
+                    className={`absolute right-0 mt-2 w-40 rounded-lg shadow-lg py-2 z-20 border ${
+                      darkMode
+                        ? "bg-gray-800 text-gray-200 border-gray-700"
+                        : "bg-white text-gray-800 border-gray-200"
+                    }`}
+                  >
+                    <p
+                      className={`block px-4 py-2 text-sm ${
+                        darkMode ? "text-gray-200" : "text-gray-700"
+                      }`}
+                    >
+                      {user.username || "User"}
+                    </p>
+                    <Link
+                      href="/settings"
+                      className={`block px-4 py-2 text-sm transition-colors duration-200 ${
+                        darkMode
+                          ? "text-gray-200 hover:bg-gray-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {t("settings")}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={`w-full text-start block px-4 py-2 text-sm transition-colors duration-200 ${
+                        darkMode
+                          ? "text-gray-200 hover:bg-gray-700"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {t("sign_out")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </header>
 

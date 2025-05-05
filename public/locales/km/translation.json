@@ -97,6 +97,7 @@
     "username": "ឈ្មោះអ្នកប្រើ",
     "user_manager": "ការគ្រប់គ្រងអ្នកប្រើប្រាស់",
     "add_new_user": "បន្ថែមអ្នកប្រើថ្មី",
+    "edit_user": "កែប្រែអ្នកប្រើ",
     "enter_username": "បញ្ចូលឈ្មោះអ្នកប្រើ",
     "search_role_placeholder": "ស្វែងរកតួនាទី...",
     "branch_default": "សាខាលំនាំដើម",
@@ -105,9 +106,22 @@
     "search_branch_multiple_placeholder": "ស្វែងរកសាខាច្រើន...",
     "password": "លេខសម្ងាត់",
     "enter_password": "បញ្ចូលលេខសម្ងាត់",
-    "search_company_placeholder": "ស្វែងរកក្រុមហ៊ុន...",
     "confirm_password": "បញ្ជាក់លេខសម្ងាត់",
-    "show_password": "បង្ហាញលេខសម្ងាត់"
+    "enter_confirm_password": "បញ្ចូលលេខសម្ងាត់បញ្ជាក់ម្ថងទៀត",
+    "show_password": "បង្ហាញលេខសម្ងាត់",
+    "companies": "ក្រុមហ៊ុន",
+    "search_company_multiple_placeholder": "ស្វែងរកក្រុមហ៊ុន...",
+    "user_created_success": "អ្នកប្រើត្រូវបានបង្កើតដោយជោគជ័យ",
+    "user_updated_success": "អ្នកប្រើត្រូវបានកែសម្រួលដោយជោគជ័យ",
+    "user_deleted_success": "អ្នកប្រើត្រូវបានលុបដោយជោគជ័យ",
+    "user_create_failed": "មិនអាចបង្កើតអ្នកប្រើបានទេ",
+    "user_update_failed": "មិនអាចកែសម្រួលអ្នកប្រើបានទេ",
+    "user_delete_failed": "មិនអាចលុបអ្នកប្រើបានទេ",
+    "confirm_delete_message": "តើអ្នកប្រាកដថាចង់លុបអ្នកប្រើនេះទេ?",
+    "password_too_short": "លេខសម្ងាត់ត្រូវតែមានយ៉ាងតិច ៨ តួអក្សរ",
+    "passwords_do_not_match": "លេខសម្ងាត់ និងការបញ្ជាក់លេខសម្ងាត់មិនដូចគ្នាទេ",
+    "username_exists": "ឈ្មោះអ្នកប្រើប្រាស់នេះមានរួចហើយ",
+    "role_required": "សូមជ្រើសរើសតួនាទី"
 
 
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -27,7 +28,7 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
   const [isVisible, setIsVisible] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [closingToRect, setClosingToRect] = useState(null); // Store closing rect for animation
+  const [closingToRect, setClosingToRect] = useState(null);
   const lightboxRef = useRef(null);
   const thumbnailRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -171,12 +172,10 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
   };
 
   const handleClose = () => {
-    // Find the DOM element for the current image
     const galleryImages = document.querySelectorAll(`img[data-kheng-chetra="${galleryId}"]`);
-    let targetRect = clickedImageRect; // Fallback to clickedImageRect
+    let targetRect = clickedImageRect;
 
     if (galleryImages.length > 0) {
-      // Find the image element that matches the current image's src
       const currentImage = images[currentIndex];
       const matchingImage = Array.from(galleryImages).find((img) => img.src === currentImage.src);
       if (matchingImage) {
@@ -190,12 +189,12 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
       }
     }
 
-    setClosingToRect(targetRect); // Store the rect for closing animation
+    setClosingToRect(targetRect);
     setIsVisible(false);
     setTimeout(() => {
       setClosingToRect(null);
       onClose();
-    }, 500); // Match the CSS transition duration (500ms)
+    }, 500);
   };
 
   const getImageTransform = () => {
@@ -203,7 +202,7 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
       const { top, left, width, height } = closingToRect;
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
-      const scaleX = width / (windowWidth * 0.8); // Scale relative to 80% of viewport
+      const scaleX = width / (windowWidth * 0.8);
       const scaleY = height / (windowHeight * 0.8);
       const translateX = left + width / 2 - windowWidth / 2;
       const translateY = top + height / 2 - windowHeight / 2;
@@ -244,18 +243,18 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
           }
           .thumbnail-container {
             display: flex;
-            gap: 0.5rem;
+            gap: 8px;
             overflow-x: auto;
             max-width: 100%;
-            padding: 0.5rem;
+            padding: 8px;
             cursor: grab;
             user-select: none;
           }
           .thumbnail-image {
-            width: 4rem;
-            height: 4rem;
+            width: 64px;
+            height: 64px;
             object-fit: cover;
-            border-radius: 0.25rem;
+            border-radius: 4px;
             transition: all 200ms ease-in-out;
           }
           .thumbnail-image.selected {
@@ -309,12 +308,23 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
           .caption {
             color: white;
             text-align: center;
-            font-size: 1rem;
-            margin-top: 0.5rem;
+            font-size: 16px;
+            margin-top: 8px;
             max-width: 80%;
             word-wrap: break-word;
           }
           .lightbox-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
             transition: opacity 500ms ease-in-out;
           }
           .lightbox-hidden {
@@ -324,19 +334,19 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 2.5rem;
-            height: 2.5rem;
-            padding: 0.5rem;
+            width: 40px;
+            height: 40px;
+            padding: 8px;
             border-radius: 50%;
-            background: transparent;
+            background-color: transparent;
             transition: background-color 200ms ease-in-out;
           }
           .icon-button:hover {
             background-color: rgba(255, 255, 255, 0.2);
           }
           .icon-button svg {
-            width: 1.5rem;
-            height: 1.5rem;
+            width: 24px;
+            height: 24px;
             fill: white;
             transition: fill 200ms ease-in-out;
           }
@@ -347,23 +357,67 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 3rem;
-            height: 3rem;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: transparent;
+            background-color: transparent;
             transition: background-color 200ms ease-in-out;
           }
           .nav-button:hover {
             background-color: rgba(255, 255, 255, 0.2);
           }
           .nav-button svg {
-            width: 2rem;
-            height: 2rem;
+            width: 32px;
+            height: 32px;
             fill: white;
             transition: fill 200ms ease-in-out;
           }
           .nav-button:hover svg {
             fill: #e5e7eb;
+          }
+          .header-container {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #4b5563;
+            border-radius: 9999px;
+          }
+          .progress-bar-inner {
+            height: 100%;
+            background-color: white;
+            border-radius: 9999px;
+            transition: width 100ms linear;
+          }
+          .controls-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+          }
+          .image-counter {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+          }
+          .buttons-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .thumbnails-section {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
           }
           @media (prefers-reduced-motion: reduce) {
             .main-image {
@@ -378,26 +432,24 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
 
       <div
         ref={lightboxRef}
-        className={`fixed inset-0 bg-black bg-opacity-95 flex flex-col items-center justify-center z-[1000] lightbox-container ${
-          isVisible ? '' : 'lightbox-hidden'
-        }`}
+        className={`lightbox-container ${isVisible ? '' : 'lightbox-hidden'}`}
       >
-        <div className="absolute top-0 w-full flex flex-col items-center">
+        <div className="header-container">
           {isPlaying && (
-            <div className="w-full h-1 bg-gray-700 rounded-full">
+            <div className="progress-bar">
               <div
-                className="h-full bg-white rounded-full transition-all duration-100"
+                className="progress-bar-inner"
                 style={{ width: `${progress}%` }}
               />
             </div>
           )}
 
-          <div className="w-full flex items-center justify-between p-4">
-            <span className="text-white text-lg font-semibold">
+          <div className="controls-container">
+            <span className="image-counter">
               {currentIndex + 1}/{images.length}
             </span>
 
-            <div className="flex items-center space-x-3">
+            <div className="buttons-group">
               <button onClick={rotateLeft} className="icon-button" title="Rotate Left">
                 <RotateLeftIcon />
               </button>
@@ -447,15 +499,15 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
           {images[currentIndex].caption && (
             <p className="caption">{images[currentIndex].caption}</p>
           )}
-          <button onClick={goToPrevious} className="absolute left-4 nav-button" title="Previous">
+          <button onClick={goToPrevious} className="nav-button" title="Previous" style={{ position: 'absolute', left: '16px' }}>
             <PreviousIcon />
           </button>
-          <button onClick={goToNext} className="absolute right-4 nav-button" title="Next">
+          <button onClick={goToNext} className="nav-button" title="Next" style={{ position: 'absolute', right: '16px' }}>
             <NextIcon />
           </button>
         </div>
 
-        <div className="absolute bottom-0 w-full flex justify-center">
+        <div className="thumbnails-section">
           <div
             ref={thumbnailRef}
             className={`thumbnail-container scrollbar-none ${
@@ -464,7 +516,6 @@ const GalleryLightbox = ({ images, initialIndex, onClose, clickedImageRect, gall
             onMouseDown={handleMouseDown}
             onMouseLeave={handleMouseLeave}
             onMouseUp={handleMouseUp}
-            Produktdokumentation
             onMouseMove={handleMouseMove}
           >
             {images.map((img, index) => (
@@ -634,3 +685,4 @@ if (!cleanup) {
 
 const GalleryBelly = () => null;
 export default GalleryBelly;
+

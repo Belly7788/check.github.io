@@ -380,8 +380,8 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                             >
                                                 <td className="p-3">{(currentPage - 1) * entriesPerPage + index + 1}</td>
                                                 <td className="p-3">
-                                                    <Bellypopover darkMode={darkMode}>
-                                                        <Clipboard darkMode={darkMode} textToCopy={role.rolename}>
+                                                    <Clipboard darkMode={darkMode} textToCopy={role.rolename}>
+                                                        <Bellypopover darkMode={darkMode}>
                                                             <span
                                                                 className={`rounded-lg pr-1 pl-1 ${getDarkModeClass(
                                                                     darkMode,
@@ -394,13 +394,14 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                     ? `${role.rolename.substring(0, 17)}...`
                                                                     : role.rolename}
                                                             </span>
-                                                        </Clipboard>
-                                                    </Bellypopover>
+                                                        </Bellypopover>
+                                                    </Clipboard>
                                                 </td>
                                                 <td className="p-3">
                                                     {role.desc ? (
-                                                        <Bellypopover darkMode={darkMode}>
-                                                            <Clipboard darkMode={darkMode} textToCopy={role.desc}>
+
+                                                        <Clipboard darkMode={darkMode} textToCopy={role.desc}>
+                                                             <Bellypopover darkMode={darkMode}>
                                                                 <span
                                                                     className={`rounded-[5px] pr-1 pl-1 ${getDarkModeClass(
                                                                         darkMode,
@@ -411,8 +412,8 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                 >
                                                                     {role.desc.length > 20 ? `${role.desc.substring(0, 17)}...` : role.desc}
                                                                 </span>
-                                                            </Clipboard>
-                                                        </Bellypopover>
+                                                            </Bellypopover>
+                                                        </Clipboard>
                                                     ) : (
                                                         ""
                                                     )}

@@ -1,27 +1,36 @@
-import { Link, Head } from "@inertiajs/react";
+import { Link, Head, router } from "@inertiajs/react";
 import { useEffect, useState, useRef } from "react";
 import { FaPlus, FaEllipsisV } from "react-icons/fa";
 import { getDarkModeClass } from "../../utils/darkModeUtils";
 import { useTranslation } from "react-i18next";
+import Pagination from "../../Component/Pagination/Pagination";
+import { showSuccessAlert } from "../../Component/SuccessAlert/SuccessAlert";
+import { showErrorAlert } from "../../Component/ErrorAlert/ErrorAlert";
+import { showConfirmAlert } from "../../Component/Confirm-Alert/Confirm-Alert";
+import Spinner from "../../Component/spinner/spinner";
 import '../../BELLY/Component/Gallery/gallery_belly';
+import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
 
-export default function UserManager({ darkMode }) {
+export default function UserManager({ darkMode, users, pagination, roles, branches, companies, search }) {
     const { t } = useTranslation();
 
     // State for pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const totalEntries = 100;
-    const entriesPerPage = 25;
-    const totalPages = Math.ceil(totalEntries / entriesPerPage);
+    const [currentPage, setCurrentPage] = useState(pagination.current_page);
+    const [entriesPerPage, setEntriesPerPage] = useState(pagination.per_page);
+    const totalEntries = pagination.total;
+    const totalPages = pagination.last_page;
 
     // State for popup
     const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
     // State for row dropdown
     const [expandedRow, setExpandedRow] = useState(null);
 
     // State for action dropdown
     const [openActionDropdown, setOpenActionDropdown] = useState(null);
+
+    const [isLoading, setIsLoading] = useState(false); // New loading state
 
     // State for form inputs
     const [username, setUsername] = useState("");
@@ -35,7 +44,10 @@ export default function UserManager({ darkMode }) {
     const [selectedRole, setSelectedRole] = useState("");
     const [selectedBranchDefault, setSelectedBranchDefault] = useState("");
     const [selectedBranches, setSelectedBranches] = useState([]);
-    const [selectedCompany, setSelectedCompany] = useState("");
+    const [selectedCompanies, setSelectedCompanies] = useState([]);
+    const [desc, setDesc] = useState("");
+    const [image, setImage] = useState(null);
+    const [searchTerm, setSearchTerm] = useState(search || "");
 
     // State for dropdown visibility
     const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
@@ -43,28 +55,60 @@ export default function UserManager({ darkMode }) {
     const [isBranchMultipleDropdownOpen, setIsBranchMultipleDropdownOpen] = useState(false);
     const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
 
-    // Dummy data for dropdowns
-    const roles = ["Admin", "Manager", "Staff", "Guest"];
-    const branches = ["Branch A", "Branch B", "Branch C", "Branch D", "Branch E", "Branch F", "Branch G", "Branch H"];
-    const companies = ["Company X", "Company Y", "Company Z"];
+    // State for loading
+    const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState({});
+    const [isEditing, setIsEditing] = useState({});
 
     // Refs for dropdown containers
     const roleRef = useRef(null);
     const branchDefaultRef = useRef(null);
     const branchMultipleRef = useRef(null);
     const companyRef = useRef(null);
+    const searchInputRef = useRef(null);
+    const saveButtonRef = useRef(null);
 
     // Popup controls
-    const openPopup = () => setIsPopupOpen(true);
+    const openPopup = (user = null) => {
+        setEditingUser(user);
+        if (user) {
+            setUsername(user.username || "");
+            setSelectedRole(user.role_id || "");
+            setSelectedBranchDefault(user.branch_id || "");
+            setSelectedBranches(
+                user.branch_id_multiple && Array.isArray(user.branch_id_multiple)
+                    ? user.branch_id_multiple.map(id => parseInt(id))
+                    : []
+            );
+            setSelectedCompanies(
+                user.company_id_multiple && Array.isArray(user.company_id_multiple)
+                    ? user.company_id_multiple.map(id => parseInt(id))
+                    : []
+            );
+            setDesc(user.desc || "");
+            setImage(user.image || null);
+        } else {
+            resetForm();
+        }
+        setIsPopupOpen(true);
+    };
+
     const closePopup = () => {
         setIsPopupOpen(false);
+        setEditingUser(null);
+        resetForm();
+    };
+
+    const resetForm = () => {
         setUsername("");
         setPassword("");
         setConfirmPassword("");
         setSelectedRole("");
         setSelectedBranchDefault("");
         setSelectedBranches([]);
-        setSelectedCompany("");
+        setSelectedCompanies([]);
+        setDesc("");
+        setImage(null);
         setRoleSearch("");
         setBranchDefaultSearch("");
         setBranchMultipleSearch("");
@@ -84,35 +128,257 @@ export default function UserManager({ darkMode }) {
 
     // Filter and sort dropdown options
     const filteredRoles = roles
-        .filter((role) => role.toLowerCase().includes(roleSearch.toLowerCase()))
-        .sort((a, b) => a.localeCompare(b));
+        .filter((role) => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     const filteredBranches = branches
-        .filter((branch) => branch.toLowerCase().includes(branchDefaultSearch.toLowerCase()))
-        .sort((a, b) => a.localeCompare(b));
+        .filter((branch) => branch.name.toLowerCase().includes(branchDefaultSearch.toLowerCase()))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     const filteredMultipleBranches = branches
-        .filter((branch) => branch.toLowerCase().includes(branchMultipleSearch.toLowerCase()))
-        .sort((a, b) => a.localeCompare(b));
+        .filter((branch) => branch.name.toLowerCase().includes(branchMultipleSearch.toLowerCase()))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     const filteredCompanies = companies
-        .filter((company) => company.toLowerCase().includes(companySearch.toLowerCase()))
-        .sort((a, b) => a.localeCompare(b));
+        .filter((company) => company.name.toLowerCase().includes(companySearch.toLowerCase()))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     // Handle branch multiple selection
-    const handleBranchSelect = (branch) => {
-        if (!selectedBranches.includes(branch)) {
-            setSelectedBranches([...selectedBranches, branch]);
+    const handleBranchSelect = (branchId) => {
+        branchId = parseInt(branchId);
+        if (!selectedBranches.includes(branchId)) {
+            setSelectedBranches([...selectedBranches, branchId]);
         } else {
-            setSelectedBranches(selectedBranches.filter((b) => b !== branch));
+            setSelectedBranches(selectedBranches.filter((b) => b !== branchId));
         }
         setBranchMultipleSearch("");
     };
 
-    // Remove selected branch
-    const removeBranch = (branch) => {
-        setSelectedBranches(selectedBranches.filter((b) => b !== branch));
+    // Handle company multiple selection
+    const handleCompanySelect = (companyId) => {
+        companyId = parseInt(companyId);
+        if (!selectedCompanies.includes(companyId)) {
+            setSelectedCompanies([...selectedCompanies, companyId]);
+        } else {
+            setSelectedCompanies(selectedCompanies.filter((c) => c !== companyId));
+        }
+        setCompanySearch("");
     };
+
+    // Remove selected branch
+    const removeBranch = (branchId) => {
+        branchId = parseInt(branchId);
+        setSelectedBranches(selectedBranches.filter((b) => b !== branchId));
+    };
+
+    // Remove selected company
+    const removeCompany = (companyId) => {
+        companyId = parseInt(companyId);
+        setSelectedCompanies(selectedCompanies.filter((c) => c !== companyId));
+    };
+
+    // Handle form submission with validation
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Password length validation
+        if (!editingUser && password.length < 8) {
+            showErrorAlert({
+                title: t("error"),
+                message: t("password_too_short"),
+                darkMode,
+            });
+            return;
+        }
+
+        // Password confirmation validation
+        if (!editingUser && password !== confirmPassword) {
+            showErrorAlert({
+                title: t("error"),
+                message: t("passwords_do_not_match"),
+                darkMode,
+            });
+            return;
+        }
+
+        setIsSaving(true);
+        const data = {
+            username,
+            password,
+            password_confirmation: confirmPassword,
+            role_id: selectedRole,
+            branch_id: selectedBranchDefault || null,
+            branch_id_multiple: selectedBranches,
+            company_id_multiple: selectedCompanies,
+            desc: desc || null,
+            image,
+        };
+
+        const request = editingUser
+            ? router.put(`/settings/user/user-management/${editingUser.id}`, data, {
+                  onSuccess: () => {
+                      setIsSaving(false);
+                      closePopup();
+                      showSuccessAlert({
+                          title: t("success"),
+                          message: t("user_updated_success"),
+                          darkMode,
+                      });
+                  },
+                  onError: (errors) => {
+                      setIsSaving(false);
+                      let errorMessage = t("user_update_failed");
+                      if (errors.username) {
+                          errorMessage = t("username_exists");
+                      } else if (errors.password) {
+                          errorMessage = t("password_too_short");
+                      } else if (errors.role_id) {
+                          errorMessage = t("role_required");
+                      }
+                      showErrorAlert({
+                          title: t("error"),
+                          message: errorMessage,
+                          darkMode,
+                      });
+                  },
+              })
+            : router.post('/settings/user/user-management', data, {
+                  onSuccess: () => {
+                      setIsSaving(false);
+                      closePopup();
+                      showSuccessAlert({
+                          title: t("success"),
+                          message: t("user_created_success"),
+                          darkMode,
+                      });
+                  },
+                  onError: (errors) => {
+                      setIsSaving(false);
+                      let errorMessage = t("user_create_failed");
+                      if (errors.username) {
+                          errorMessage = t("username_exists");
+                      } else if (errors.password) {
+                          errorMessage = t("password_too_short");
+                      } else if (errors.role_id) {
+                          errorMessage = t("role_required");
+                      }
+                      showErrorAlert({
+                          title: t("error"),
+                          message: errorMessage,
+                          darkMode,
+                      });
+                  },
+              });
+    };
+
+    // Handle delete with confirmation
+    const handleDelete = (id) => {
+        showConfirmAlert({
+            title: t("confirm_delete_title"),
+            message: t("confirm_delete_message"),
+            darkMode,
+            isLoading: isDeleting[id],
+            onConfirm: () => {
+                setIsDeleting((prev) => ({ ...prev, [id]: true }));
+                router.put(`/settings/user/user-management/${id}/status`, {}, {
+                    onSuccess: () => {
+                        setIsDeleting((prev) => ({ ...prev, [id]: false }));
+                        setOpenActionDropdown(null);
+                        showSuccessAlert({
+                            title: t("success"),
+                            message: t("user_deleted_success"),
+                            darkMode,
+                        });
+                    },
+                    onError: (errors) => {
+                        setIsDeleting((prev) => ({ ...prev, [id]: false }));
+                        showErrorAlert({
+                            title: t("error"),
+                            message: errors.message || t("user_delete_failed"),
+                            darkMode,
+                        });
+                    },
+                });
+            },
+        });
+    };
+
+    // Handle edit button click with spinner
+    const handleEditClick = (user, index) => {
+        setIsEditing((prev) => ({ ...prev, [index]: true }));
+        setTimeout(() => {
+            openPopup(user);
+            setIsEditing((prev) => ({ ...prev, [index]: false }));
+        }, 500);
+    };
+
+    // Handle search
+    const handleSearch = () => {
+        setIsLoading(true); // Show loading when searching
+        router.get(
+            '/settings/user/user-management',
+            { search: searchTerm, page: 1, per_page: entriesPerPage },
+            {
+                preserveState: true,
+                // replace: true,
+                preserveScroll: true,
+                onFinish: () => setIsLoading(false), // Hide loading after fetch
+            }
+        );
+    };
+
+    // Handle Enter key for search
+    const handleSearchKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
+    // Handle entries per page change
+    const handleEntriesPerPageChange = (e) => {
+        const newEntriesPerPage = Number(e.target.value);
+        setEntriesPerPage(newEntriesPerPage);
+        setCurrentPage(1);
+        setIsLoading(true); // Show loading when searching
+        router.get(
+            '/settings/user/user-management',
+            { page: 1, per_page: newEntriesPerPage, search: searchTerm },
+            {
+                preserveState: true,
+                // replace: true,
+                preserveScroll: true,
+                onFinish: () => setIsLoading(false), // Hide loading after fetch
+            }
+        );
+    };
+
+    // Handle page change
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        setIsLoading(true); // Show loading when searching
+        router.get(
+            '/settings/user/user-management',
+            { page, per_page: entriesPerPage, search: searchTerm },
+            {
+                preserveState: true,
+                // replace: true
+                preserveScroll: true,
+                onFinish: () => setIsLoading(false), // Hide loading after fetch
+            }
+        );
+    };
+
+    // Handle Ctrl + Enter for form submission
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.ctrlKey && e.key === 'Enter' && isPopupOpen) {
+                saveButtonRef.current?.click();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isPopupOpen]);
 
     // Handle click outside to close dropdowns
     useEffect(() => {
@@ -168,6 +434,10 @@ export default function UserManager({ darkMode }) {
                             <input
                                 type="text"
                                 placeholder={t("search_placeholder")}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyPress={handleSearchKeyPress}
+                                ref={searchInputRef}
                                 className={`w-full p-2 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff8800] shadow-sm hover:shadow-md transition-shadow duration-200 ${getDarkModeClass(
                                     darkMode,
                                     "bg-[#2D2D2D] text-gray-300 placeholder-gray-500 border border-gray-700",
@@ -193,7 +463,7 @@ export default function UserManager({ darkMode }) {
                         </div>
                         <div className="flex space-x-2">
                             <button
-                                onClick={openPopup}
+                                onClick={() => openPopup()}
                                 className={`flex items-center text-sm px-4 py-2 rounded-lg transition ${getDarkModeClass(
                                     darkMode,
                                     "bg-[#3A3A3A] text-gray-200 hover:bg-[#4A4A4A]",
@@ -251,7 +521,7 @@ export default function UserManager({ darkMode }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("role")}
+                                            {t("role_name")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -264,276 +534,151 @@ export default function UserManager({ darkMode }) {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    {Array.from({ length: entriesPerPage }).map((_, index) => {
-                                        const itemIndex = (currentPage - 1) * entriesPerPage + index;
-                                        if (itemIndex >= totalEntries) return null;
-                                        return (
-                                            <tr
-                                                key={itemIndex}
-                                                onClick={() => toggleRowDropdown(itemIndex)}
-                                                className={`border-b cursor-pointer ${getDarkModeClass(
-                                                    darkMode,
-                                                    "bg-[#1A1A1A] text-gray-300 border-gray-700 hover:bg-[#2D2D2D]",
-                                                    "bg-gray-50 text-gray-900 border-gray-200 hover:bg-gray-100"
-                                                )}`}
-                                            >
-                                                <td className="p-3">{itemIndex + 1}</td>
-                                                <td className="p-3">
-                                                    <img
-                                                        src="/uoloads/profile_user/IMG_9071.JPG"
-                                                        className="w-12 h-12 object-cover rounded-full"
-                                                        loading="lazy"
-                                                        data-kheng-chetra="belly-gallery-profile"
-                                                    />
-                                                </td>
-                                                <td className="p-3">user{String(itemIndex + 1).padStart(3, "0")}</td>
-                                                <td className="p-3">{roles[itemIndex % roles.length]}</td>
-                                                <td className="p-3">
-                                                    <div className="relative action-container">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setOpenActionDropdown(
-                                                                    openActionDropdown === itemIndex ? null : itemIndex
-                                                                );
-                                                            }}
-                                                            className={`text-gray-500 hover:text-[#ff8800] p-2 rounded transition duration-200 ${getDarkModeClass(
-                                                                darkMode,
-                                                                "hover:drop-shadow-[0_0_8px_rgba(255,136,0,0.8)]",
-                                                                "hover:bg-orange-100"
-                                                            )}`}
-                                                        >
-                                                            <FaEllipsisV className="w-5 h-5" />
-                                                        </button>
-                                                        {openActionDropdown === itemIndex && (
-                                                            <div
-                                                                className={`absolute right-20 w-40 rounded-lg shadow-lg z-20 ${getDarkModeClass(
+                                    {isLoading ? (
+                                        <TableLoading darkMode={darkMode} rowCount={entriesPerPage} colCount={5} />
+                                    ) : (
+                                        <tbody>
+                                            {users.map((user, index) => (
+                                                <tr
+                                                    key={user.id}
+                                                    onClick={() => toggleRowDropdown(index)}
+                                                    className={`border-b cursor-pointer ${getDarkModeClass(
+                                                        darkMode,
+                                                        "bg-[#1A1A1A] text-gray-300 border-gray-700 hover:bg-[#2D2D2D]",
+                                                        "bg-gray-50 text-gray-900 border-gray-200 hover:bg-gray-100"
+                                                    )}`}
+                                                >
+                                                    <td className="p-3 w-28">{(currentPage - 1) * entriesPerPage + index + 1}</td>
+                                                    <td className="p-3">
+                                                        <div className="w-12 h-12 rounded-full overflow-hidden">
+                                                            {user.image ? (
+                                                                <img
+                                                                    src={user.image}
+                                                                    alt="User profile"
+                                                                    className="w-full h-full object-cover"
+                                                                    loading="lazy"
+                                                                    data-kheng-chetra="belly-gallery-profile"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className={`w-full h-full flex items-center justify-center text-white font-semibold text-lg ${
+                                                                        darkMode ? "bg-gray-600" : "bg-orange-500"
+                                                                    }`}
+                                                                >
+                                                                    {user.username ? user.username.charAt(0).toUpperCase() : "U"}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">{user.username}</td>
+                                                    <td className="p-3">{user.role?.rolename || ''}</td>
+                                                    <td className="p-3 w-36">
+                                                        <div className="relative action-container">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenActionDropdown(
+                                                                        openActionDropdown === index ? null : index
+                                                                    );
+                                                                }}
+                                                                className={`text-gray-500 hover:text-[#ff8800] p-2 rounded transition duration-200 ${getDarkModeClass(
                                                                     darkMode,
-                                                                    "bg-[#2D2D2D] text-gray-200",
-                                                                    "bg-white text-gray-900"
+                                                                    "hover:drop-shadow-[0_0_8px_rgba(255,136,0,0.8)]",
+                                                                    "hover:bg-orange-100"
                                                                 )}`}
                                                             >
-                                                                <button
-                                                                    className={`w-full text-left hover:rounded px-4 py-2 text-sm flex items-center ${getDarkModeClass(
+                                                                <FaEllipsisV className="w-5 h-5" />
+                                                            </button>
+                                                            {openActionDropdown === index && (
+                                                                <div
+                                                                    className={`absolute right-24 w-40 rounded-lg shadow-lg z-20 ${getDarkModeClass(
                                                                         darkMode,
-                                                                        "hover:bg-[#3A3A3A]",
-                                                                        "hover:bg-gray-100"
+                                                                        "bg-[#2D2D2D] text-gray-200",
+                                                                        "bg-white text-gray-900"
                                                                     )}`}
                                                                 >
-                                                                    <svg
-                                                                        className="w-4 h-4 mr-2 text-orange-400"
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        viewBox="0 0 24 24"
-                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                    <button
+                                                                        onClick={() => handleEditClick(user, index)}
+                                                                        className={`w-full text-left hover:rounded px-4 py-2 text-sm flex items-center ${getDarkModeClass(
+                                                                            darkMode,
+                                                                            "hover:bg-[#3A3A3A]",
+                                                                            "hover:bg-gray-100"
+                                                                        )}`}
+                                                                        disabled={isEditing[index]}
                                                                     >
-                                                                        <path
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                            strokeWidth="2"
-                                                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                                                        />
-                                                                    </svg>
-                                                                    {t("edit")}
-                                                                </button>
-                                                                <button
-                                                                    className={`w-full text-left px-4 hover:rounded py-2 text-sm flex items-center ${getDarkModeClass(
-                                                                        darkMode,
-                                                                        "hover:bg-[#3A3A3A]",
-                                                                        "hover:bg-gray-100"
-                                                                    )}`}
-                                                                >
-                                                                    <svg
-                                                                        className="w-4 h-4 mr-2 text-red-400"
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        viewBox="0 0 24 24"
-                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        {isEditing[index] ? (
+                                                                            <Spinner width="16px" height="16px" className="mr-2" />
+                                                                        ) : (
+                                                                            <svg
+                                                                                className="w-4 h-4 mr-2 text-orange-400"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                viewBox="0 0 24 24"
+                                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                            >
+                                                                                <path
+                                                                                    strokeLinecap="round"
+                                                                                    strokeLinejoin="round"
+                                                                                    strokeWidth="2"
+                                                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                                                                />
+                                                                            </svg>
+                                                                        )}
+                                                                        {t("edit")}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDelete(user.id)}
+                                                                        className={`w-full text-left px-4 hover:rounded py-2 text-sm flex items-center ${getDarkModeClass(
+                                                                            darkMode,
+                                                                            "hover:bg-[#3A3A3A]",
+                                                                            "hover:bg-gray-100"
+                                                                        )}`}
+                                                                        disabled={isDeleting[user.id]}
                                                                     >
-                                                                        <path
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                            strokeWidth="2"
-                                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4a2 2 0 012 2v2H8V5a2 2 0 012-2z"
-                                                                        />
-                                                                    </svg>
-                                                                    {t("delete")}
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
+                                                                        {isDeleting[user.id] ? (
+                                                                            <Spinner width="16px" height="16px" className="mr-2" />
+                                                                        ) : (
+                                                                            <svg
+                                                                                className="w-4 h-4 mr-2 text-red-400"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                viewBox="0 0 24 24"
+                                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                            >
+                                                                                <path
+                                                                                    strokeLinecap="round"
+                                                                                    strokeLinejoin="round"
+                                                                                    strokeWidth="2"
+                                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4a2 2 0 012 2v2H8V5a2 2 0 012-2z"
+                                                                                />
+                                                                            </svg>
+                                                                        )}
+                                                                        {t("delete")}
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    )}
                             </table>
                         </div>
                     </div>
 
-                    {/* Pagination */}
-                    <div className="flex justify-end items-center mt-4 space-x-2 text-sm">
-                        <div className="flex items-center space-x-1">
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className={`${getDarkModeClass(
-                                    darkMode,
-                                    "text-gray-400 hover:text-[#ff8800]",
-                                    "text-gray-500 hover:text-[#ff8800]"
-                                )} px-2 py-1 disabled:opacity-50`}
-                            >
-                                {"<"}
-                            </button>
-                            {currentPage > 3 && (
-                                <>
-                                    <button
-                                        onClick={() => setCurrentPage(1)}
-                                        className={`${getDarkModeClass(
-                                            darkMode,
-                                            "text-gray-400 hover:bg-[#3A3A3A]",
-                                            "text-gray-700 hover:bg-gray-200"
-                                        )} px-2 py-1 rounded`}
-                                    >
-                                        1
-                                    </button>
-                                    {currentPage > 4 && (
-                                        <span
-                                            className={`${getDarkModeClass(
-                                                darkMode,
-                                                "text-gray-500",
-                                                "text-gray-500"
-                                            )} px-2 py-1`}
-                                        >
-                                            ...
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                            {[...Array(totalPages).keys()]
-                                .filter(
-                                    (page) =>
-                                        page + 1 >= Math.max(1, currentPage - 2) &&
-                                        page + 1 <= Math.min(totalPages, currentPage + 2)
-                                )
-                                .map((page) => (
-                                    <button
-                                        key={page + 1}
-                                        onClick={() => setCurrentPage(page + 1)}
-                                        className={`px-2 py-1 rounded ${getDarkModeClass(
-                                            darkMode,
-                                            currentPage === page + 1
-                                                ? "bg-[#ff8800] text-white"
-                                                : "text-gray-400 hover:bg-[#3A3A3A]",
-                                            currentPage === page + 1
-                                                ? "bg-[#ff8800] text-white"
-                                                : "text-gray-700 hover:bg-gray-200"
-                                        )}`}
-                                    >
-                                        {page + 1}
-                                    </button>
-                                ))}
-                            {currentPage < totalPages - 2 && (
-                                <>
-                                    {currentPage < totalPages - 3 && (
-                                        <span
-                                            className={`${getDarkModeClass(
-                                                darkMode,
-                                                "text-gray-500",
-                                                "text-gray-500"
-                                            )} px-2 py-1`}
-                                        >
-                                            ...
-                                        </span>
-                                    )}
-                                    <button
-                                        onClick={() => setCurrentPage(totalPages)}
-                                        className={`${getDarkModeClass(
-                                            darkMode,
-                                            "text-gray-400 hover:bg-[#3A3A3A]",
-                                            "text-gray-700 hover:bg-gray-200"
-                                        )} px-2 py-1 rounded`}
-                                    >
-                                        {totalPages}
-                                    </button>
-                                </>
-                            )}
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                                className={`${getDarkModeClass(
-                                    darkMode,
-                                    "text-gray-400 hover:text-[#ff8800]",
-                                    "text-gray-500 hover:text-[#ff8800]"
-                                )} px-2 py-1 disabled:opacity-50`}
-                            >
-                                {">"}
-                            </button>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                            <select
-                                value={entriesPerPage}
-                                onChange={(e) => {
-                                    const newEntriesPerPage = Number(e.target.value);
-                                    console.log("Change entries per page:", newEntriesPerPage);
-                                    setCurrentPage(1);
-                                }}
-                                className={`${getDarkModeClass(
-                                    darkMode,
-                                    "bg-[#2D2D2D] text-gray-300 border-gray-700",
-                                    "bg-white text-gray-700 border-gray-300"
-                                )} border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#ff8800]`}
-                            >
-                                <option value="10">10/ {t("page")}</option>
-                                <option value="25">25/ {t("page")}</option>
-                                <option value="50">50/ {t("page")}</option>
-                                <option value="100">100/ {t("page")}</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                            <span
-                                className={`${getDarkModeClass(
-                                    darkMode,
-                                    "text-gray-400",
-                                    "text-gray-700"
-                                )}`}
-                            >
-                                {t("go_to")}
-                            </span>
-                            <input
-                                type="text"
-                                defaultValue={currentPage}
-                                onKeyPress={(e) => {
-                                    if (e.key === "Enter") {
-                                        const page = Number(e.target.value);
-                                        if (page >= 1 && page <= totalPages && !isNaN(page)) {
-                                            setCurrentPage(page);
-                                        }
-                                    }
-                                }}
-                                className={`${getDarkModeClass(
-                                    darkMode,
-                                    "bg-[#2D2D2D] text-gray-300 border-gray-700",
-                                    "bg-white text-gray-700 border-gray-300"
-                                )} w-12 p-1 border rounded text-center focus:outline-none focus:ring-2 focus:ring-[#ff8800]`}
-                                min="1"
-                                max={totalPages}
-                            />
-                            <span
-                                className={`${getDarkModeClass(
-                                    darkMode,
-                                    "text-gray-400",
-                                    "text-gray-700"
-                                )}`}
-                            >
-                                {t("page")}
-                            </span>
-                        </div>
-                    </div>
+                    {/* Pagination Component */}
+                    <Pagination
+                        darkMode={darkMode}
+                        currentPage={currentPage}
+                        totalEntries={totalEntries}
+                        entriesPerPage={entriesPerPage}
+                        onPageChange={handlePageChange}
+                        onEntriesPerPageChange={handleEntriesPerPageChange}
+                    />
                 </div>
 
-                {/* Popup for Adding New User */}
+                {/* Popup for Adding/Editing User */}
                 <div
                     id="add-new-popup"
                     className={`fixed inset-0 bg-gray-900 flex items-center justify-center z-50 transition-all duration-300 ease-in-out ${
@@ -575,11 +720,11 @@ export default function UserManager({ darkMode }) {
                                         d="M12 4v16m8-8H4"
                                     />
                                 </svg>
-                                {t("add_new_user")}
+                                {editingUser ? t("edit_user") : t("add_new_user")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
-                            <form id="add-user-form" className="space-y-6">
+                            <form id="add-user-form" onSubmit={handleSubmit} className="space-y-6">
                                 <div className="grid grid-cols-2 gap-6">
                                     <div>
                                         <label
@@ -601,6 +746,7 @@ export default function UserManager({ darkMode }) {
                                                 "bg-white text-gray-900 border-gray-200"
                                             )}`}
                                             placeholder={t("enter_username")}
+                                            required
                                         />
                                     </div>
                                     <div className="relative" ref={roleRef}>
@@ -611,12 +757,17 @@ export default function UserManager({ darkMode }) {
                                                 "text-gray-700"
                                             )}`}
                                         >
-                                            {t("role")}
+                                            {t("role_name")}
                                         </label>
                                         <div className="relative">
                                             <input
                                                 type="text"
-                                                value={roleSearch || selectedRole}
+                                                value={
+                                                    roleSearch ||
+                                                    (selectedRole
+                                                        ? roles.find((r) => r.id === selectedRole)?.name
+                                                        : "")
+                                                }
                                                 onChange={(e) => setRoleSearch(e.target.value)}
                                                 onClick={toggleRoleDropdown}
                                                 className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
@@ -655,9 +806,9 @@ export default function UserManager({ darkMode }) {
                                                 {filteredRoles.length > 0 ? (
                                                     filteredRoles.map((role) => (
                                                         <div
-                                                            key={role}
+                                                            key={role.id}
                                                             onClick={() => {
-                                                                setSelectedRole(role);
+                                                                setSelectedRole(role.id);
                                                                 setRoleSearch("");
                                                                 setIsRoleDropdownOpen(false);
                                                             }}
@@ -667,7 +818,7 @@ export default function UserManager({ darkMode }) {
                                                                 "hover:bg-gray-100"
                                                             )} cursor-pointer`}
                                                         >
-                                                            {role}
+                                                            {role.name}
                                                         </div>
                                                     ))
                                                 ) : (
@@ -697,7 +848,12 @@ export default function UserManager({ darkMode }) {
                                         <div className="relative">
                                             <input
                                                 type="text"
-                                                value={branchDefaultSearch || selectedBranchDefault}
+                                                value={
+                                                    branchDefaultSearch ||
+                                                    (selectedBranchDefault
+                                                        ? branches.find((b) => b.id === selectedBranchDefault)?.name
+                                                        : "")
+                                                }
                                                 onChange={(e) => setBranchDefaultSearch(e.target.value)}
                                                 onClick={toggleBranchDefaultDropdown}
                                                 className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
@@ -736,9 +892,9 @@ export default function UserManager({ darkMode }) {
                                                 {filteredBranches.length > 0 ? (
                                                     filteredBranches.map((branch) => (
                                                         <div
-                                                            key={branch}
+                                                            key={branch.id}
                                                             onClick={() => {
-                                                                setSelectedBranchDefault(branch);
+                                                                setSelectedBranchDefault(branch.id);
                                                                 setBranchDefaultSearch("");
                                                                 setIsBranchDefaultDropdownOpen(false);
                                                             }}
@@ -748,7 +904,7 @@ export default function UserManager({ darkMode }) {
                                                                 "hover:bg-gray-100"
                                                             )} cursor-pointer`}
                                                         >
-                                                            {branch}
+                                                            {branch.name}
                                                         </div>
                                                     ))
                                                 ) : (
@@ -785,36 +941,39 @@ export default function UserManager({ darkMode }) {
                                                 onClick={toggleBranchMultipleDropdown}
                                             >
                                                 {selectedBranches.length > 0 ? (
-                                                    selectedBranches.map((branch) => (
-                                                        <div
-                                                            key={branch}
-                                                            className="flex items-center bg-[#ff8800]/20 text-[#ff8800] rounded px-2 py-1 text-sm"
-                                                        >
-                                                            {branch}
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeBranch(branch);
-                                                                }}
-                                                                className="ml-2"
+                                                    selectedBranches.map((branchId) => {
+                                                        const branch = branches.find((b) => b.id === branchId);
+                                                        return (
+                                                            <div
+                                                                key={branchId}
+                                                                className="flex items-center bg-[#ff8800]/20 text-[#ff8800] rounded px-2 py-1 text-sm"
                                                             >
-                                                                <svg
-                                                                    className="w-4 h-4"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    viewBox="0 0 24 24"
-                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                {branch?.name || `Branch ${branchId}`}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeBranch(branchId);
+                                                                    }}
+                                                                    className="ml-2"
                                                                 >
-                                                                    <path
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeWidth="2"
-                                                                        d="M6 18L18 6M6 6l12 12"
-                                                                    />
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    ))
+                                                                    <svg
+                                                                        className="w-4 h-4"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth="2"
+                                                                            d="M6 18L18 6M6 6l12 12"
+                                                                        />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })
                                                 ) : (
                                                     <input
                                                         type="text"
@@ -858,19 +1017,19 @@ export default function UserManager({ darkMode }) {
                                                 {filteredMultipleBranches.length > 0 ? (
                                                     filteredMultipleBranches.map((branch) => (
                                                         <div
-                                                            key={branch}
-                                                            onClick={() => handleBranchSelect(branch)}
+                                                            key={branch.id}
+                                                            onClick={() => handleBranchSelect(branch.id)}
                                                             className={`flex items-center py-2 px-4 ${getDarkModeClass(
                                                                 darkMode,
-                                                                selectedBranches.includes(branch)
+                                                                selectedBranches.includes(branch.id)
                                                                     ? "bg-[#ff8800]/20 text-[#ff8800]"
                                                                     : "hover:bg-[#3A3A3A]",
-                                                                selectedBranches.includes(branch)
+                                                                selectedBranches.includes(branch.id)
                                                                     ? "bg-[#ff8800]/20 text-[#ff8800]"
                                                                     : "hover:bg-gray-100"
                                                             )} cursor-pointer`}
                                                         >
-                                                            {selectedBranches.includes(branch) && (
+                                                            {selectedBranches.includes(branch.id) && (
                                                                 <svg
                                                                     className="w-4 h-4 mr-2"
                                                                     fill="none"
@@ -886,7 +1045,7 @@ export default function UserManager({ darkMode }) {
                                                                     />
                                                                 </svg>
                                                             )}
-                                                            {branch}
+                                                            {branch.name}
                                                         </div>
                                                     ))
                                                 ) : (
@@ -923,6 +1082,7 @@ export default function UserManager({ darkMode }) {
                                                 "bg-white text-gray-900 border-gray-200"
                                             )}`}
                                             placeholder={t("enter_password")}
+                                            required={!editingUser}
                                         />
                                     </div>
                                     <div className="relative" ref={companyRef}>
@@ -933,21 +1093,65 @@ export default function UserManager({ darkMode }) {
                                                 "text-gray-700"
                                             )}`}
                                         >
-                                            {t("company")}
+                                            {t("companies")}
                                         </label>
                                         <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={companySearch || selectedCompany}
-                                                onChange={(e) => setCompanySearch(e.target.value)}
-                                                onClick={toggleCompanyDropdown}
+                                            <div
                                                 className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                                     darkMode,
                                                     "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                                     "bg-white text-gray-900 border-gray-200"
-                                                )}`}
-                                                placeholder={t("search_company_placeholder")}
-                                            />
+                                                )} min-h-[44px] flex flex-wrap gap-2`}
+                                                onClick={toggleCompanyDropdown}
+                                            >
+                                                {selectedCompanies.length > 0 ? (
+                                                    selectedCompanies.map((companyId) => {
+                                                        const company = companies.find((c) => c.id === companyId);
+                                                        return (
+                                                            <div
+                                                                key={companyId}
+                                                                className="flex items-center bg-[#ff8800]/20 text-[#ff8800] rounded px-2 py-1 text-sm"
+                                                            >
+                                                                {company?.name || `Company ${companyId}`}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeCompany(companyId);
+                                                                    }}
+                                                                    className="ml-2"
+                                                                >
+                                                                    <svg
+                                                                        className="w-4 h-4"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth="2"
+                                                                            d="M6 18L18 6M6 6l12 12"
+                                                                        />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={companySearch}
+                                                        onChange={(e) => setCompanySearch(e.target.value)}
+                                                        className={`w-full bg-transparent outline-none ${getDarkModeClass(
+                                                            darkMode,
+                                                            "text-gray-300",
+                                                            "text-gray-900"
+                                                        )}`}
+                                                        placeholder={t("search_company_multiple_placeholder")}
+                                                    />
+                                                )}
+                                            </div>
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 className={`h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 transition-transform duration-200 cursor-pointer ${
@@ -977,19 +1181,35 @@ export default function UserManager({ darkMode }) {
                                                 {filteredCompanies.length > 0 ? (
                                                     filteredCompanies.map((company) => (
                                                         <div
-                                                            key={company}
-                                                            onClick={() => {
-                                                                setSelectedCompany(company);
-                                                                setCompanySearch("");
-                                                                setIsCompanyDropdownOpen(false);
-                                                            }}
-                                                            className={`py-2 px-4 ${getDarkModeClass(
+                                                            key={company.id}
+                                                            onClick={() => handleCompanySelect(company.id)}
+                                                            className={`flex items-center py-2 px-4 ${getDarkModeClass(
                                                                 darkMode,
-                                                                "hover:bg-[#3A3A3A]",
-                                                                "hover:bg-gray-100"
+                                                                selectedCompanies.includes(company.id)
+                                                                    ? "bg-[#ff8800]/20 text-[#ff8800]"
+                                                                    : "hover:bg-[#3A3A3A]",
+                                                                selectedCompanies.includes(company.id)
+                                                                    ? "bg-[#ff8800]/20 text-[#ff8800]"
+                                                                    : "hover:bg-gray-100"
                                                             )} cursor-pointer`}
                                                         >
-                                                            {company}
+                                                            {selectedCompanies.includes(company.id) && (
+                                                                <svg
+                                                                    className="w-4 h-4 mr-2"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                    xmlns="http://www.w3.org/2000/svg"
+                                                                >
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth="2"
+                                                                        d="M5 13l4 4L19 7"
+                                                                    />
+                                                                </svg>
+                                                            )}
+                                                            {company.name}
                                                         </div>
                                                     ))
                                                 ) : (
@@ -1006,8 +1226,6 @@ export default function UserManager({ darkMode }) {
                                             </div>
                                         )}
                                     </div>
-
-
                                     <div>
                                         <label
                                             className={`block text-sm font-medium mb-1 ${getDarkModeClass(
@@ -1027,7 +1245,8 @@ export default function UserManager({ darkMode }) {
                                                 "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                                 "bg-white text-gray-900 border-gray-200"
                                             )}`}
-                                            placeholder={t("confirm_password")}
+                                            placeholder={t("enter_confirm_password")}
+                                            required={!editingUser}
                                         />
                                     </div>
                                     <div className="col-span-2">
@@ -1048,6 +1267,28 @@ export default function UserManager({ darkMode }) {
                                                 {t("show_password")}
                                             </span>
                                         </label>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label
+                                            className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                                darkMode,
+                                                "text-gray-300",
+                                                "text-gray-700"
+                                            )}`}
+                                        >
+                                            {t("description")}
+                                        </label>
+                                        <textarea
+                                            value={desc}
+                                            onChange={(e) => setDesc(e.target.value)}
+                                            className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
+                                                darkMode,
+                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                "bg-white text-gray-900 border-gray-200"
+                                            )}`}
+                                            placeholder={t("enter_description")}
+                                            rows="4"
+                                        />
                                     </div>
                                 </div>
                             </form>
@@ -1073,15 +1314,25 @@ export default function UserManager({ darkMode }) {
                                     {t("cancel")} (ESC)
                                 </button>
                                 <button
+                                    id="save-btn"
                                     type="submit"
                                     form="add-user-form"
-                                    className={`border ${getDarkModeClass(
+                                    ref={saveButtonRef}
+                                    disabled={isSaving}
+                                    className={`border flex items-center justify-center ${getDarkModeClass(
                                         darkMode,
                                         "border-[#ff8800] text-[#ff8800] hover:bg-[#ff8800] hover:text-white",
                                         "border-[#ff8800] text-[#ff8800] hover:bg-[#ff8800] hover:text-white"
-                                    )} font-semibold py-2.5 px-6 rounded-lg transition duration-200 shadow-md`}
+                                    )} font-semibold py-2.5 px-6 rounded-lg transition duration-200 shadow-md ${
+                                        isSaving ? "opacity-50 cursor-not-allowed" : ""
+                                    }`}
                                 >
-                                    {t("save")} (CTRL + ENTER)
+                                    {isSaving ? (
+                                        <Spinner width="16px" height="16px" className="mr-2" />
+                                    ) : (
+                                        t("save")
+                                    )}
+                                    {isSaving ? "" : " (CTRL + ENTER)"}
                                 </button>
                             </div>
                         </div>
