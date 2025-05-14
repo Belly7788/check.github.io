@@ -2,6 +2,7 @@
 /* Style the scrollbar for Webkit browsers (Chrome, Safari, Edge) */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px; /* Width of the scrollbar */
+    height: 8px; /* Height of horizontal scrollbar to keep it slim */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {

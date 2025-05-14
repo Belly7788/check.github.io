@@ -811,7 +811,7 @@ export function Layout({ children }) {
                   <rect x="14" y="14" width="6" height="6" rx="1" />
                 </svg>
               </button>
-              <h1 className="text-xl font-semibold">
+              <h1 className="text-xl uppercase font-semibold">
                 {t(title)}
                 {subtitle && (
                   <>
@@ -927,7 +927,7 @@ export function Layout({ children }) {
               {/* Dark Mode Toggle Button */}
               <button
                 onClick={toggleDarkMode}
-                className="relative w-[52px] h-6 bg-gray-300 rounded-full flex items-center p-1 transition-colors duration-300"
+                className="relative w-[51px] h-6 bg-gray-300 rounded-full flex items-center p-1 transition-colors duration-300"
               >
                 <div
                   className={`absolute w-5 h-5 rounded-full transition-transform duration-300 flex items-center justify-center ${

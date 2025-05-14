@@ -24,6 +24,28 @@
     "confirm_logout": "确认退出",
     "are_you_sure_logout": "您确定要退出吗？",
     "Product_Management": "产品管理",
+    "No_Data_Available": "无可用数据",
+    "no_image": "无图像",
+
+    "product_created_successfully": "产品创建成功！",
+    "product_updated_successfully": "产品更新成功！",
+    "product_deleted_successfully": "产品删除成功！",
+    "excel_downloaded_successfully": "Excel 文件下载成功！",
+    "pdf_downloaded_successfully": "PDF 文件下载成功！",
+    "please_enter_at_least_one_field": "请至少填写一个字段！",
+    "the_product_code_has_already_been_taken": "产品代码已被使用！",
+    "failed_to_delete_product": "删除产品失败！",
+    "failed_to_fetch_images": "获取图片失败！",
+    "failed_to_fetch_videos": "获取视频失败！",
+    "failed_to_download_excel": "下载 Excel 文件失败！",
+    "failed_to_download_pdf": "下载 PDF 文件失败！",
+    "failed_to_read_image": "读取图片失败！",
+    "confirm_delete_product": "您确定要删除此产品吗？",
+    "edit_product": "编辑产品",
+    "failed_to_enter_pip": "无法进入画中画模式！",
+    "pip_not_supported": "此浏览器不支持画中画模式！",
+    "failed_to_play_video": "播放视频失败！",
+    "failed_to_load_video": "加载视频失败！",
 
 
     "search_placeholder": "搜索...",
@@ -66,6 +88,7 @@
     "save": "保存",
     "go_to": "前往",
     "page": "页面",
+    "saving": "保存...",
 
 
 
@@ -118,5 +141,112 @@
     "password_too_short": "密码必须至少8个字符",
     "passwords_do_not_match": "密码和确认密码不匹配",
     "username_exists": "此用户名已存在",
-    "role_required": "请选择一个角色"
+    "role_required": "请选择一个角色",
+
+
+
+
+    "datePicker": {
+        "today": "今天",
+        "clear": "清除",
+        "placeholder": "年-月-日",
+        "months": {
+            "jan": "一月",
+            "feb": "二月",
+            "mar": "三月",
+            "apr": "四月",
+            "may": "五月",
+            "jun": "六月",
+            "jul": "七月",
+            "aug": "八月",
+            "sep": "九月",
+            "oct": "十月",
+            "nov": "十一月",
+            "dec": "十二月"
+        },
+        "days": {
+            "su": "周日",
+            "mo": "周一",
+            "tu": "周二",
+            "we": "周三",
+            "th": "周四",
+            "fr": "周五",
+            "sa": "周六"
+        }
+    },
+
+
+    "create_invoice": {
+        "create_pi": "创建发票",
+        "search_product_placeholder": "搜索产品...",
+        "pi_number": "发票编号",
+        "pi_number_placeholder": "输入发票编号",
+        "pi_number_exists": "此发票编号已存在",
+        "error_validating_pi_number": "验证发票编号时出错",
+        "name_en": "名称（英文）",
+        "name_en_placeholder": "输入英文名称",
+        "name_cn": "名称（中文）",
+        "name_cn_placeholder": "输入中文名称",
+        "company": "公司",
+        "select_company_placeholder": "选择公司",
+        "date": "日期",
+        "total": "总计",
+        "discount": "折扣",
+        "extra_charge": "额外费用",
+        "grand_total": "总计净额",
+        "save": "保存",
+        "photo": "图片",
+        "code": "代码",
+        "name": "名称",
+        "ctn": "箱数",
+        "qty": "数量",
+        "unit_price": "单价",
+        "sub_total": "小计",
+        "remark": "备注",
+        "action": "操作",
+        "total_ctn": "总箱数",
+        "total_qty": "总数量",
+        "total_subtotal": "总小计",
+        "confirm_remove_product": "您确定要删除此产品吗？",
+        "cancel": "取消",
+        "okay": "确定",
+        "error": "错误",
+        "success": "成功",
+        "pi_created_successfully": "发票创建成功",
+        "error_creating_pi": "创建发票时出错",
+        "company_required": "请选择公司",
+        "products_required": "请至少添加一个产品",
+        "discount_or_extra_charge_invalid": "折扣或额外费用无效",
+        "enter_remark": "输入备注"
+    },
+
+
+
+    "create_purchase_order": {
+        "create_purchase_order": "创建采购订单",
+        "search_product_placeholder": "按代码或名称搜索产品...",
+        "photo": "图片",
+        "code": "代码",
+        "name": "名称",
+        "amount": "数量",
+        "ratingstar": "评分",
+        "remark": "备注",
+        "action": "操作",
+        "date": "日期",
+        "time": "时间",
+        "total_qty": "总数量",
+        "total_items": "总项目",
+        "confirm_remove_product": "您确定要删除此产品吗？",
+        "po_created_successfully": "采购订单创建成功",
+        "error_creating_po": "创建采购订单时出错",
+        "products_required": "至少需要一个产品",
+        "amount_invalid": "一个或多个数量无效",
+        "enter_remark": "输入备注...",
+        "okay": "确定",
+        "save": "保存",
+        "saving": "正在保存...",
+        "cancel": "取消",
+        "no": "序号"
+    }
+
 }

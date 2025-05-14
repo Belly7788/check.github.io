@@ -9,7 +9,7 @@ const Bellypopover = ({ children, darkMode }) => {
 
   // Get caption and title from data attributes
   const caption = children.props['data-belly-caption'] || '';
-  const title = children.props['data-belly-title'] || null; // Use null to indicate absence
+  const title = children.props['data-belly-title'] || null;
 
   // Handle click outside to close popover
   useEffect(() => {
@@ -34,13 +34,9 @@ const Bellypopover = ({ children, darkMode }) => {
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const popoverRect = popoverRef.current.getBoundingClientRect();
 
-      // Calculate position to center the popover horizontally
       const left = triggerRect.left + triggerRect.width / 2 - popoverRect.width / 2;
+      const top = triggerRect.top - popoverRect.height - 8;
 
-      // Position popover above the trigger (adjust margin-top if needed)
-      const top = triggerRect.top - popoverRect.height - 8; // 8px gap
-
-      // Apply the calculated position
       popoverRef.current.style.left = `${left}px`;
       popoverRef.current.style.top = `${top}px`;
     }
@@ -48,46 +44,42 @@ const Bellypopover = ({ children, darkMode }) => {
 
   // Animation variants
   const popoverVariants = {
-    hidden: {
-      opacity: 0,
-      y: -10,
-      scale: 0.95,
-    },
+    hidden: { opacity: 0, y: -10, scale: 0.95 },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: {
-        duration: 0.2,
-        ease: 'easeOut',
-      },
+      transition: { duration: 0.2, ease: 'easeOut' },
     },
     exit: {
       opacity: 0,
       y: -10,
       scale: 0.95,
-      transition: {
-        duration: 0.15,
-        ease: 'easeIn',
-      },
+      transition: { duration: 0.15, ease: 'easeIn' },
     },
   };
+
+  // Split caption into lines by comma and filter out empty strings
+  const captionLines = caption
+    .split(',')
+    .map(line => line.trim())
+    .filter(line => line);
 
   return (
     <div className="relative inline-block">
       <style>
         {`
           .popover-title {
-            font-size: 1rem; /* Slightly larger for title */
-            font-weight: 600; /* Bold for title */
-            margin-bottom: 0.25rem; /* Space between title and caption */
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
             word-break: break-all;
             white-space: normal;
           }
           .popover-caption {
             word-break: break-all;
             white-space: normal;
-            font-size: 0.875rem; /* Matches text-sm */
+            font-size: 0.875rem;
             line-height: 1.25rem;
           }
         `}
@@ -128,12 +120,13 @@ const Bellypopover = ({ children, darkMode }) => {
                 {title}
               </div>
             )}
-            {caption && (
-              <div
-                className="popover-caption"
-                style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}
-              >
-                {caption}
+            {captionLines.length > 0 && (
+              <div className="popover-caption">
+                {captionLines.map((line, index) => (
+                  <div key={index} style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}>
+                    {line}
+                  </div>
+                ))}
               </div>
             )}
           </motion.div>

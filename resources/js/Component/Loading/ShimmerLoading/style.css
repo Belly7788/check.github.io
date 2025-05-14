@@ -10,7 +10,6 @@
     animation: shimmer 1.5s infinite linear;
     background: linear-gradient(to right, #2d2d2d 8%, #3d3d3d 18%, #2d2d2d 33%);
     background-size: 1200px 100%;
-
   }
 
   @keyframes shimmer {

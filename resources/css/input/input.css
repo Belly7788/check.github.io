@@ -1,0 +1,39 @@
+/* style checkbox color green */
+.custom-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    outline: none;
+    transition: box-shadow 0.3s, background-color 0.3s, border-color 0.3s;
+}
+
+.custom-checkbox-border-darkmode{
+    border: 2px solid #4b5563;
+}
+.custom-checkbox-border{
+    border: 2px solid #363534;
+}
+
+.custom-checkbox:checked {
+    background-color: #22c55e; /* Green-500 */
+    border-color: #22c55e;
+    box-shadow: 0 0 8px 3px rgba(34, 197, 94, 0.6); /* Green glow */
+}
+
+.custom-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 6px;
+    height: 10px;
+    border: solid black;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}

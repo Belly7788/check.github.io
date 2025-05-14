@@ -1,5 +1,4 @@
 {
-
     "dashboard": "Dashboard",
     "product": "Product",
     "list_products": "List Products",
@@ -25,6 +24,29 @@
     "confirm_logout": "Confirm Logout",
     "are_you_sure_logout": "Are you sure you want to log out?",
     "Product_Management": "Product Management",
+    "No_Data_Available": "No Data Available",
+    "no_image": "No Image",
+
+    "product_created_successfully": "Product created successfully!",
+    "product_updated_successfully": "Product updated successfully!",
+    "product_deleted_successfully": "Product deleted successfully!",
+    "excel_downloaded_successfully": "Excel file downloaded successfully!",
+    "pdf_downloaded_successfully": "PDF file downloaded successfully!",
+    "please_enter_at_least_one_field": "Please enter at least one field!",
+    "the_product_code_has_already_been_taken": "The product code has already been taken!",
+    "failed_to_delete_product": "Failed to delete product!",
+    "failed_to_fetch_images": "Failed to fetch images!",
+    "failed_to_fetch_videos": "Failed to fetch videos!",
+    "failed_to_download_excel": "Failed to download Excel file!",
+    "failed_to_download_pdf": "Failed to download PDF file!",
+    "failed_to_read_image": "Failed to read image!",
+    "confirm_delete_product": "Are you sure you want to delete this product?",
+    "edit_product": "Edit Product",
+    "failed_to_enter_pip": "Failed to enter Picture-in-Picture mode!",
+    "pip_not_supported": "Picture-in-Picture is not supported in this browser!",
+    "failed_to_play_video": "Failed to play video!",
+    "failed_to_load_video": "Failed to load video!",
+
 
 
 
@@ -64,10 +86,11 @@
     "videos_multiple": "Videos (Multiple)",
     "drag_drop_videos": "Drag & drop videos here or click to browse",
     "cancel": "Cancel",
-    "confirm": "Confrim",
+    "confirm": "Confirm",
     "save": "Save",
     "go_to": "Go to",
     "page": "Page",
+    "saving": "Saving...",
 
 
 
@@ -119,7 +142,111 @@
     "password_too_short": "Password must be at least 8 characters",
     "passwords_do_not_match": "Password and confirm password do not match",
     "username_exists": "This username already exists",
-    "role_required": "Please select a role"
+    "role_required": "Please select a role",
+
+
+
+
+    "datePicker": {
+        "today": "Today",
+        "clear": "Clear",
+        "placeholder": "YYYY-MM-DD",
+        "months": {
+            "jan": "Jan",
+            "feb": "Feb",
+            "mar": "Mar",
+            "apr": "Apr",
+            "may": "May",
+            "jun": "Jun",
+            "jul": "Jul",
+            "aug": "Aug",
+            "sep": "Sep",
+            "oct": "Oct",
+            "nov": "Nov",
+            "dec": "Dec"
+        },
+        "days": {
+            "su": "Su",
+            "mo": "Mo",
+            "tu": "Tu",
+            "we": "We",
+            "th": "Th",
+            "fr": "Fr",
+            "sa": "Sa"
+        }
+    },
+
+
+    "create_invoice": {
+        "create_pi": "Create Invoice",
+        "search_product_placeholder": "Search for products...",
+        "pi_number": "PI Number",
+        "pi_number_placeholder": "Enter invoice number",
+        "pi_number_exists": "This invoice number already exists",
+        "error_validating_pi_number": "Error validating invoice number",
+        "name_en": "Name (English)",
+        "name_en_placeholder": "Enter name in English",
+        "name_cn": "Name (Chinese)",
+        "name_cn_placeholder": "Enter name in Chinese",
+        "company": "Company",
+        "select_company_placeholder": "Select a company",
+        "date": "Date",
+        "total": "Total",
+        "discount": "Discount",
+        "extra_charge": "Extra Charge",
+        "grand_total": "Grand Total",
+        "save": "Save",
+        "photo": "Photo",
+        "code": "Code",
+        "name": "Name",
+        "ctn": "Cartons",
+        "qty": "Quantity",
+        "unit_price": "Unit Price",
+        "sub_total": "Sub Total",
+        "remark": "Remark",
+        "action": "Action",
+        "total_ctn": "Total Cartons",
+        "total_qty": "Total Quantity",
+        "total_subtotal": "Total Subtotal",
+        "confirm_remove_product": "Are you sure you want to remove this product?",
+        "cancel": "Cancel",
+        "okay": "Okay",
+        "error": "Error",
+        "success": "Success",
+        "pi_created_successfully": "Invoice created successfully",
+        "error_creating_pi": "Error creating invoice",
+        "company_required": "Please select a company",
+        "products_required": "Please add at least one product",
+        "discount_or_extra_charge_invalid": "Discount or extra charge is invalid",
+        "enter_remark": "Enter Remark"
+    },
+
+    "create_purchase_order": {
+        "create_purchase_order": "Create Purchase Order",
+        "search_product_placeholder": "Search product by code or name...",
+        "photo": "Photo",
+        "code": "Code",
+        "name": "Name",
+        "amount": "Quantity",
+        "ratingstar": "Rating",
+        "remark": "Remark",
+        "action": "Action",
+        "date": "Date",
+        "time": "Time",
+        "total_qty": "Total QTY",
+        "total_items": "Total Items",
+        "confirm_remove_product": "Are you sure you want to remove this product?",
+        "po_created_successfully": "Purchase Order created successfully",
+        "error_creating_po": "Error creating Purchase Order",
+        "products_required": "At least one product is required",
+        "amount_invalid": "One or more amounts are invalid",
+        "enter_remark": "Enter remark...",
+        "okay": "Okay",
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "no": "No"
+    }
 
 
 }

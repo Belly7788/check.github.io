@@ -24,6 +24,28 @@
     "confirm_logout": "បញ្ជាក់ការចាកចេញ",
     "are_you_sure_logout": "តើអ្នកប្រាកដថាចង់ចាកចេញមែនទេ?",
     "Product_Management": "ការគ្រប់គ្រងផលិតផល",
+    "No_Data_Available": "មិនមានទិន្នន័យទេ",
+    "no_image": "គ្មានរូបភាព",
+
+    "product_created_successfully": "ផលិតផលបានបង្កើតជោគជ័យ!",
+    "product_updated_successfully": "ផលិតផលបានធ្វើបច្ចុប្បន្នភាពជោគជ័យ!",
+    "product_deleted_successfully": "ផលិតផលបានលុបជោគជ័យ!",
+    "excel_downloaded_successfully": "ឯកសារ Excel បានទាញយកជោគជ័យ!",
+    "pdf_downloaded_successfully": "ឯកសារ PDF បានទាញយកជោគជ័យ!",
+    "please_enter_at_least_one_field": "សូមបញ្ចូលយ៉ាងហោចណាស់មួយវាល!",
+    "the_product_code_has_already_been_taken": "កូដផលិតផលនេះត្រូវបានប្រើរួចហើយ!",
+    "failed_to_delete_product": "បរាជ័យក្នុងការលុបផលិតផល!",
+    "failed_to_fetch_images": "បរាជ័យក្នុងការទាញយករូបភាព!",
+    "failed_to_fetch_videos": "បរាជ័យក្នុងការទាញយកវីដេអូ!",
+    "failed_to_download_excel": "បរាជ័យក្នុងការទាញយកឯកសារ Excel!",
+    "failed_to_download_pdf": "បរាជ័យក្នុងការទាញយកឯកសារ PDF!",
+    "failed_to_read_image": "បរាជ័យក្នុងការអានរូបភាព!",
+    "confirm_delete_product": "តើអ្នកប្រាកដជាចង់លុបផលិតផលនេះទេ?",
+    "edit_product": "កែសម្រួលផលិតផល",
+    "failed_to_enter_pip": "បរាជ័យក្នុងការចូលទៅក្នុងរបៀប Picture-in-Picture!",
+    "pip_not_supported": "របៀប Picture-in-Picture មិនត្រូវបានគាំទ្រនៅក្នុងកម្មវិធីរុករកនេះទេ!",
+    "failed_to_play_video": "បរាជ័យក្នុងការចាក់វីដេអូ!",
+    "failed_to_load_video": "បរាជ័យក្នុងការផ្ទុកវីដេអូ!",
 
 
     "search_placeholder": "ស្វែងរក...",
@@ -66,13 +88,14 @@
     "save": "រក្សាទុក",
     "go_to": "ទៅកាន់",
     "page": "ទំព័រ",
+    "saving": "កំពុងរក្សាទុក...",
 
 
 
 
 
     "role_list": "បញ្ជីតួនាទី",
-    "no": "លេខរៀង",
+    "no": "ល.រ",
     "role_name": "ឈ្មោះតួនាទី",
     "description": "ការពិពណ៌នា",
     "add_new_role": "បន្ថែមតួនាទីថ្មី",
@@ -121,7 +144,114 @@
     "password_too_short": "លេខសម្ងាត់ត្រូវតែមានយ៉ាងតិច ៨ តួអក្សរ",
     "passwords_do_not_match": "លេខសម្ងាត់ និងការបញ្ជាក់លេខសម្ងាត់មិនដូចគ្នាទេ",
     "username_exists": "ឈ្មោះអ្នកប្រើប្រាស់នេះមានរួចហើយ",
-    "role_required": "សូមជ្រើសរើសតួនាទី"
+    "role_required": "សូមជ្រើសរើសតួនាទី",
+
+
+
+
+    "datePicker": {
+        "today": "ថ្ងៃនេះ",
+        "clear": "លុប",
+        "placeholder": "ឆ្នាំ-ខែ-ថ្ងៃ",
+        "months": {
+            "jan": "មករា",
+            "feb": "កុម្ភៈ",
+            "mar": "មីនា",
+            "apr": "មេសា",
+            "may": "ឧសភា",
+            "jun": "មិថុនា",
+            "jul": "កក្កដា",
+            "aug": "សីហា",
+            "sep": "កញ្ញា",
+            "oct": "តុលា",
+            "nov": "វិច្ឆិកា",
+            "dec": "ធ្នូ"
+        },
+        "days": {
+            "su": "អា",
+            "mo": "ច",
+            "tu": "អ",
+            "we": "ព",
+            "th": "ព្រ",
+            "fr": "សុ",
+            "sa": "ស"
+        }
+    },
+
+
+
+    "create_invoice": {
+        "create_pi": "បង្កើតវិក័យប័ត្រ",
+        "search_product_placeholder": "ស្វែងរកផលិតផល...",
+        "pi_number": "លេខវិក័យប័ត្រ",
+        "pi_number_placeholder": "បញ្ចូលលេខវិក័យប័ត្រ",
+        "pi_number_exists": "លេខវិក័យប័ត្រនេះមានរួចហើយ",
+        "error_validating_pi_number": "កំហុសក្នុងការផ្ទៀងផ្ទាត់លេខវិក័យប័ត្រ",
+        "name_en": "ឈ្មោះ (អង់គ្លេស)",
+        "name_en_placeholder": "បញ្ចូលឈ្មោះជាភាសាអង់គ្លេស",
+        "name_cn": "ឈ្មោះ (ចិន)",
+        "name_cn_placeholder": "បញ្ចូលឈ្មោះជាភាសាចិន",
+        "company": "ក្រុមហ៊ុន",
+        "select_company_placeholder": "ជ្រើសរើសក្រុមហ៊ុន",
+        "date": "កាលបរិច្ឆេទ",
+        "total": "សរុប",
+        "discount": "បញ្ចុះតម្លៃ",
+        "extra_charge": "ថ្លៃបន្ថែម",
+        "grand_total": "សរុបសុទ្ធ",
+        "save": "រក្សាទុក",
+        "photo": "រូបភាព",
+        "code": "កូដ",
+        "name": "ឈ្មោះ",
+        "ctn": "ចំនួនកេស",
+        "qty": "បរិមាណ",
+        "unit_price": "តម្លៃឯកតា",
+        "sub_total": "សរុបរង",
+        "remark": "កំណត់សម្គាល់",
+        "action": "សកម្មភាព",
+        "total_ctn": "សរុបកេស",
+        "total_qty": "សរុបបរិមាណ",
+        "total_subtotal": "សរុបរង",
+        "confirm_remove_product": "តើអ្នកប្រាកដជាចង់លុបផលិតផលនេះទេ?",
+        "cancel": "បោះបង់",
+        "okay": "យល់ព្រម",
+        "error": "កំហុស",
+        "success": "ជោគជ័យ",
+        "pi_created_successfully": "វិក័យប័ត្រត្រូវបានបង្កើតដោយជោគជ័យ",
+        "error_creating_pi": "កំហុសក្នុងការបង្កើតវិក័យប័ត្រ",
+        "company_required": "សូមជ្រើសរើសក្រុមហ៊ុន",
+        "products_required": "សូមបញ្ចូលផលិតផលយ៉ាងហោចណាស់មួយ",
+        "discount_or_extra_charge_invalid": "បញ្ចុះតម្លៃ ឬថ្លៃបន្ថែមមិនត្រឹមត្រូវ",
+        "enter_remark": "បញ្ចូលចំណាំ"
+    },
+
+
+    "create_purchase_order": {
+        "create_purchase_order": "បង្កើតបញ្ជាទិញ",
+        "search_product_placeholder": "ស្វែងរកផលិតផលតាមកូដ ឬឈ្មោះ...",
+        "photo": "រូបភាព",
+        "code": "កូដ",
+        "name": "ឈ្មោះ",
+        "amount": "បរិមាណ",
+        "ratingstar": "ការវាយតម្លៃ",
+        "remark": "កំណត់សម្គាល់",
+        "action": "សកម្មភាព",
+        "date": "កាលបរិច្ឆេទ",
+        "time": "ម៉ោង",
+        "total_qty": "បរិមាណសរុប",
+        "total_items": "ធាតុសរុប",
+        "confirm_remove_product": "តើអ្នកប្រាកដជាចង់លុបផលិតផលនេះឬ?",
+        "po_created_successfully": "បញ្ជាទិញត្រូវបានបង្កើតដោយជោគជ័យ",
+        "error_creating_po": "កំហុសក្នុងការបង្កើតបញ្ជាទិញ",
+        "products_required": "តម្រូវឲ្យមានផលិតផលយ៉ាងហោចណាស់មួយ",
+        "amount_invalid": "បរិមាណមួយ ឬច្រើនមិនត្រឹមត្រូវ",
+        "enter_remark": "បញ្ចូលកំណត់សម្គាល់...",
+        "okay": "យល់ព្រម",
+        "save": "រក្សាទុក",
+        "saving": "កំពុងរក្សាទុក...",
+        "cancel": "បោះបង់",
+        "no": "លេខរៀង"
+    }
+
 
 
 }

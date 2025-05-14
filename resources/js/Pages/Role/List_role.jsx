@@ -383,10 +383,10 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                     <Clipboard darkMode={darkMode} textToCopy={role.rolename}>
                                                         <Bellypopover darkMode={darkMode}>
                                                             <span
-                                                                className={`rounded-lg pr-1 pl-1 ${getDarkModeClass(
+                                                                className={`label-Purple ${getDarkModeClass(
                                                                     darkMode,
-                                                                    "bg-indigo-900/30 text-blue-700",
-                                                                    "bg-indigo-100 text-blue-800"
+                                                                    "label-Purple-darkmode",
+                                                                    ""
                                                                 )}`}
                                                                 data-belly-caption={role.rolename}
                                                             >
@@ -401,12 +401,12 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                     {role.desc ? (
 
                                                         <Clipboard darkMode={darkMode} textToCopy={role.desc}>
-                                                             <Bellypopover darkMode={darkMode}>
+                                                            <Bellypopover darkMode={darkMode}>
                                                                 <span
-                                                                    className={`rounded-[5px] pr-1 pl-1 ${getDarkModeClass(
+                                                                    className={`label-orange ${getDarkModeClass(
                                                                         darkMode,
-                                                                        "bg-rose-900/30 text-rose-200",
-                                                                        "bg-rose-100 text-rose-800"
+                                                                        "label-orange-darkmode",
+                                                                        ""
                                                                     )}`}
                                                                     data-belly-caption={role.desc}
                                                                 >
@@ -656,7 +656,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                     ) : (
                                         t("save")
                                     )}
-                                    {isSaving ? '' : ' (CTRL + ENTER)'}
+                                    {isSaving ? t("saving") : ' (CTRL + ENTER)'}
                                 </button>
                             </div>
                         </div>

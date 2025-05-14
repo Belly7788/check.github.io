@@ -1,0 +1,189 @@
+
+
+/* Light mode - purple */
+.label-Purple {
+  padding: 1px;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #f3e5f5;  /* Very light purple background */
+  color: #8b5cf6;            /* Purple-500 */
+  transition: all 0.3s ease;
+}
+
+/* Dark mode - purple */
+.label-Purple-darkmode {
+  background-color: #2e1a47;  /* Dark purple background */
+  color: #a78bfa;            /* Purple-400 */
+  box-shadow: 0 0 8px 3px rgba(167, 139, 250, 0.3); /* Purple glow */
+}
+
+/* Optional hover effects */
+.label-Purple:hover {
+  box-shadow: 0 0 5px 1px rgba(139, 92, 246, 0.3);
+}
+
+.label-Purple-darkmode:hover {
+  box-shadow: 0 0 10px 4px rgba(167, 139, 250, 0.4);
+}
+
+
+
+
+
+
+/* Light mode - red */
+.label-red {
+  padding: 1px;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #ffebee;  /* Very light red background */
+  color: #ef4444;            /* Red-500 */
+  transition: all 0.3s ease;
+}
+
+/* Dark mode - red */
+.label-red-darkmode {
+  background-color: #3a1a1a;  /* Dark red background */
+  color: #f87171;            /* Red-400 */
+  box-shadow: 0 0 8px 3px rgba(248, 113, 113, 0.3); /* Red glow */
+}
+
+/* Optional hover effects */
+.label-red:hover {
+  box-shadow: 0 0 5px 1px rgba(239, 68, 68, 0.3);
+}
+
+.label-red-darkmode:hover {
+  box-shadow: 0 0 10px 4px rgba(248, 113, 113, 0.4);
+}
+
+
+
+
+
+
+
+
+
+/* Light mode - green */
+.label-green {
+  padding: 1px;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #e6ffec;  /* Light green background */
+  color: #22c55e;            /* Green-500 text */
+  transition: all 0.3s ease;
+}
+
+/* Dark mode - green */
+.label-green-darkmode {
+  background-color: #1a3a2e;  /* Dark green background */
+  color: #4ade80;            /* Green-400 text */
+  box-shadow: 0 0 8px 3px rgba(74, 222, 128, 0.3); /* Green glow */
+}
+
+/* Optional hover effects */
+.label-green:hover {
+  box-shadow: 0 0 5px 1px rgba(34, 197, 94, 0.3);
+}
+
+.label-green-darkmode:hover {
+  box-shadow: 0 0 10px 4px rgba(74, 222, 128, 0.4);
+}
+
+
+
+
+
+
+/* Light mode - orange */
+.label-orange {
+  padding: 1px;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #fff4e6;  /* Very light orange background */
+  color: #ff8800;            /* Your specified orange */
+  transition: all 0.3s ease;
+}
+
+/* Dark mode - orange */
+.label-orange-darkmode {
+  background-color: #3a2a1a;  /* Dark brown-orange background */
+  color: #ffaa44;            /* Slightly lighter orange */
+  box-shadow: 0 0 8px 3px rgba(255, 170, 68, 0.3); /* Orange glow */
+}
+
+/* Optional hover effects */
+.label-orange:hover {
+  box-shadow: 0 0 5px 1px rgba(255, 136, 0, 0.3);
+}
+
+.label-orange-darkmode:hover {
+  box-shadow: 0 0 10px 4px rgba(255, 170, 68, 0.4);
+}
+
+
+
+
+
+/* Light mode - blue (#2596be) */
+.label-blue {
+  padding: 1px;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #e6f4ff;  /* Very light blue background */
+  color: #2596be;            /* Your specified blue */
+  transition: all 0.3s ease;
+}
+
+/* Dark mode - blue */
+.label-blue-darkmode {
+  background-color: #0a2d3a;  /* Dark blue background */
+  color: #4fc3f7;            /* Lighter blue for better visibility */
+  box-shadow: 0 0 8px 3px rgba(79, 195, 247, 0.3); /* Blue glow */
+}
+
+/* Optional hover effects */
+.label-blue:hover {
+  box-shadow: 0 0 5px 1px rgba(37, 150, 190, 0.3);
+}
+
+.label-blue-darkmode:hover {
+  box-shadow: 0 0 10px 4px rgba(79, 195, 247, 0.4);
+}
+
+
+
+
+
+/* Light mode - pink */
+.label-pink {
+  padding: 1px;
+  padding-right: 0.25rem;
+  padding-left: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #fce4ec;  /* Very light pink background */
+  color: #ec4899;            /* Pink-500 */
+  transition: all 0.3s ease;
+}
+
+/* Dark mode - pink */
+.label-pink-darkmode {
+  background-color: #3a1a2a;  /* Dark pink/purple background */
+  color: #f472b6;            /* Pink-400 */
+  box-shadow: 0 0 8px 3px rgba(244, 114, 182, 0.3); /* Pink glow */
+}
+
+/* Optional hover effects */
+.label-pink:hover {
+  box-shadow: 0 0 5px 1px rgba(236, 72, 153, 0.3);
+}
+
+.label-pink-darkmode:hover {
+  box-shadow: 0 0 10px 4px rgba(244, 114, 182, 0.4);
+}

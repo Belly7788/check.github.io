@@ -570,7 +570,16 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className="p-3">{user.username}</td>
+                                                    <td className="p-3">
+                                                        <span className={`label-pink ${getDarkModeClass(
+                                                            darkMode,
+                                                                "label-pink-darkmode",
+                                                                ""
+                                                            )}`}
+                                                        >
+                                                            {user.username}
+                                                        </span>
+                                                    </td>
                                                     <td className="p-3">{user.role?.rolename || ''}</td>
                                                     <td className="p-3 w-36">
                                                         <div className="relative action-container">
@@ -1332,7 +1341,7 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                                     ) : (
                                         t("save")
                                     )}
-                                    {isSaving ? "" : " (CTRL + ENTER)"}
+                                    {isSaving ? t("saving") : ' (CTRL + ENTER)'}
                                 </button>
                             </div>
                         </div>
