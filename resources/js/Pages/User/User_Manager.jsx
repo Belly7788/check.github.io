@@ -481,7 +481,7 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                             <table className="w-full border-collapse">
                                 <thead>
                                     <tr
-                                        className={`${getDarkModeClass(
+                                        className={`uppercase ${getDarkModeClass(
                                             darkMode,
                                             "bg-[#2D2D2D] border-b border-gray-700",
                                             "bg-[#ff8800]"

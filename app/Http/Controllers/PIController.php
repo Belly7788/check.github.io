@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Pi;
 use App\Models\PiDetail;
+use App\Models\PoDetail;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,17 +16,63 @@ use Illuminate\Support\Facades\Redirect;
 
 class PIController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
+        // Extract id_pos from query string
+        $idPos = [];
+        foreach ($request->query() as $key => $value) {
+            if (is_numeric($key)) {
+                $idPos[] = $key;
+            } elseif ($key === 'id_pos') {
+                $idPos[] = $value;
+            }
+        }
+        $idPos = array_filter($idPos); // Remove empty values
+
+        // Fetch products from tbpo_detail based on id_pos
+        $preSelectedProducts = [];
+        if (!empty($idPos)) {
+            $poDetails = PoDetail::whereIn('id', $idPos)
+                ->with('product')
+                ->get();
+
+            // Group by product_id to merge duplicates
+            $groupedProducts = $poDetails->groupBy('product.id')->map(function ($group) {
+                $product = $group->first()->product;
+                $totalAmount = $group->sum('amount');
+                $totalCtn = $group->sum('ctn');
+                $poDetailIds = $group->pluck('id')->toArray();
+
+                return [
+                    'product_id' => $product->id,
+                    'code' => $product->product_code,
+                    'namekh' => $product->name_kh,
+                    'nameen' => $product->name_en,
+                    'namecn' => $product->name_cn,
+                    'photo' => $product->image ? asset('storage/' . $product->image) : null,
+                    'ctn' => $totalCtn,
+                    'amount' => $totalAmount,
+                    'unit_price' => 0,
+                    'subTotal' => 0,
+                    'note' => '',
+                    'po_detail_ids' => $poDetailIds,
+                ];
+            })->values()->toArray();
+
+            $preSelectedProducts = $groupedProducts;
+        }
+
         return Inertia::render('PI/Create-PI', [
-            'darkMode' => true, // Adjust based on your dark mode logic
+            'darkMode' => true,
+            'preSelectedProducts' => $preSelectedProducts,
+            'idPos' => $idPos,
         ]);
     }
 
     public function searchProducts(Request $request)
     {
         $query = urldecode($request->input('query', ''));
-        $query = Normalizer::normalize($query, Normalizer::FORM_C); // Normalize to composed form
+        $query = Normalizer::normalize($query, Normalizer::FORM_C);
 
         $products = Product::where('status', 1)
             ->where(function ($q) use ($query) {
@@ -52,7 +99,6 @@ class PIController extends Controller
             ->select('id', 'company_name as name')
             ->get();
 
-        // Optionally filter companies if a query is provided
         if ($query) {
             $companies = $companies->filter(function ($company) use ($query) {
                 return stripos($company->name, $query) !== false;
@@ -65,9 +111,7 @@ class PIController extends Controller
     public function validatePiNumber(Request $request)
     {
         $piNumber = $request->input('pi_number');
-
         $exists = Pi::where('pi_number', $piNumber)->exists();
-
         return response()->json(['exists' => $exists]);
     }
 
@@ -88,12 +132,17 @@ class PIController extends Controller
             'products.*.unit_price' => 'required|numeric|min:0',
             'products.*.note' => 'nullable|string',
             'products.*.ctn' => 'nullable|integer|min:0',
+            'products.*.po_detail_ids' => 'nullable|array',
+            'products.*.po_detail_ids.*' => 'exists:tbpo_detail,id',
+            'id_pos' => 'nullable|array',
+            'id_pos.*' => 'exists:tbpo_detail,id',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Create PI
         $pi = Pi::create([
             'pi_number' => $request->pi_number,
             'date' => $request->date,
@@ -107,6 +156,8 @@ class PIController extends Controller
             'status' => 1,
         ]);
 
+        // Create PI details and collect po_detail_ids
+        $submittedPoDetailIds = [];
         foreach ($request->products as $product) {
             PiDetail::create([
                 'pi_id' => $pi->id,
@@ -117,8 +168,22 @@ class PIController extends Controller
                 'ctn' => $product['ctn'] ?? 0,
                 'status' => 1,
             ]);
+
+            // Collect po_detail_ids from submitted products
+            if (isset($product['po_detail_ids']) && is_array($product['po_detail_ids'])) {
+                $submittedPoDetailIds = array_merge($submittedPoDetailIds, $product['po_detail_ids']);
+            }
         }
 
-        return redirect()->back()->with('success', 'PI created successfully');
+        // Update tbpo_detail only for po_detail_ids that are still in the submitted products
+        if (!empty($submittedPoDetailIds)) {
+            PoDetail::whereIn('id', $submittedPoDetailIds)->update([
+                'order' => 1,
+                'date_auto_order' => now(),
+            ]);
+        }
+
+        // Redirect to /pi/create without query parameters
+        return redirect()->route('pi.create')->with('success', 'PI created successfully');
     }
 }

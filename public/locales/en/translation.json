@@ -246,7 +246,50 @@
         "saving": "Saving...",
         "cancel": "Cancel",
         "no": "No"
+    },
+
+    "list_pos": {
+        "list_purchase_orders": "List Purchase Orders",
+        "search_placeholder": "Search...",
+        "name": "Name",
+        "date": "Date",
+        "amount": "Amount",
+        "remark": "Remark",
+        "rating": "Rating",
+        "order": "Order",
+        "checkbox": "Checkbox",
+        "filter_by_rating": "Filter by Rating",
+        "star": "{{count}} Star",
+        "stars": "{{count}} Stars",
+        "apply": "Apply",
+        "cancel": "Cancel",
+        "filter_by_date": "Filter by Date",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "filter_by_order": "Filter by Order",
+        "ordered": "Ordered",
+        "not_ordered": "Not Ordered",
+        "column_settings": "Column Settings",
+        "search_columns": "Search Columns...",
+        "reset": "Reset",
+        "edit_purchase_order": "Edit Purchase Order",
+        "enter_amount": "Enter Amount",
+        "enter_remark": "Enter Remark",
+        "failed_to_filter": "Failed to filter",
+        "failed_to_sort": "Failed to sort",
+        "please_fill_at_least_one_field": "Please fill at least one field",
+        "po_updated_successfully": "Purchase order updated successfully",
+        "failed_to_update": "Failed to update",
+        "confirm_delete_title": "Confirm Delete",
+        "confirm_delete_po": "Are you sure you want to delete this purchase order?",
+        "po_deleted_successfully": "Purchase order deleted successfully",
+        "failed_to_delete": "Failed to delete",
+        "failed_to_search": "Failed to search",
+        "order_updated_successfully": "Order updated successfully",
+        "failed_to_update_order": "Failed to update order"
     }
+
+
 
 
 }

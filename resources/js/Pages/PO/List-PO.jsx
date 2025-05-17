@@ -1,4 +1,3 @@
-
 import { Link, Head, router } from "@inertiajs/react";
 import { useEffect, useState, useRef } from "react";
 import { FaEllipsisV } from "react-icons/fa";
@@ -85,6 +84,9 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
     const [isSettingAnimatingOut, setIsSettingAnimatingOut] = useState(false);
     const settingHeaderRef = useRef(null);
     const [settingPopupPosition, setSettingPopupPosition] = useState({ top: 0, left: 0 });
+
+    // New state to track loading status for each PO's order checkbox
+    const [checkboxLoading, setCheckboxLoading] = useState({});
 
     // Column visibility state
     const [visibleColumns, setVisibleColumns] = useState({
@@ -207,7 +209,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                     setIsLoading(false);
                     showErrorAlert({
                         title: t("error"),
-                        message: t("failed_to_filter"),
+                        message: t("list_pos.failed_to_filter"),
                         darkMode,
                     });
                 },
@@ -250,7 +252,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                     setIsLoading(false);
                     showErrorAlert({
                         title: t("error"),
-                        message: t("failed_to_sort"),
+                        message: t("list_pos.failed_to_sort"),
                         darkMode,
                     });
                 },
@@ -268,18 +270,19 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
     };
 
     const renderStars = (rating) => {
+    // console.log('renderStars called with rating:', rating);
         const stars = [];
         for (let i = 1; i <= 5; i++) {
             stars.push(
-                <svg
-                    key={i}
-                    className={`w-5 h-5 ${i <= rating ? (darkMode ? 'text-[#facc15]' : 'text-black') : 'text-gray-300'}`}
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
+            <svg
+                key={i}
+                className={`w-5 h-5 ${i <= rating ? (darkMode ? 'text-[#facc15]' : 'text-black') : 'text-gray-300'}`}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
             );
         }
         return stars;
@@ -379,7 +382,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
         if (!formData.amount && !formData.remark && formData.rating === 0) {
             showErrorAlert({
                 title: t("error"),
-                message: t("please_fill_at_least_one_field"),
+                message: t("list_pos.please_fill_at_least_one_field"),
                 darkMode,
             });
             return;
@@ -392,7 +395,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                 closePopup();
                 showSuccessAlert({
                     title: t("success"),
-                    message: t("po_updated_successfully"),
+                    message: t("list_pos.po_updated_successfully"),
                     darkMode,
                     timeout: 3000,
                 });
@@ -406,7 +409,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                 setIsSubmitting(false);
                 showErrorAlert({
                     title: t("error"),
-                    message: Object.values(errors).join(", ") || t("failed_to_update"),
+                    message: Object.values(errors).join(", ") || t("list_pos.failed_to_update"),
                     darkMode,
                 });
             },
@@ -417,7 +420,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
     const handleDelete = (id) => {
         showConfirmAlert({
             title: t("confirm_delete_title"),
-            message: t("confirm_delete_po"),
+            message: t("list_pos.confirm_delete_po"),
             darkMode,
             isLoading: isDeleting === id,
             onConfirm: () => {
@@ -427,7 +430,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         setIsDeleting(null);
                         showSuccessAlert({
                             title: t("success"),
-                            message: t("po_deleted_successfully"),
+                            message: t("list_pos.po_deleted_successfully"),
                             darkMode,
                             timeout: 3000,
                         });
@@ -437,7 +440,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         setIsDeleting(null);
                         showErrorAlert({
                             title: t("error"),
-                            message: t("failed_to_delete"),
+                            message: t("list_pos.failed_to_delete"),
                             darkMode,
                         });
                     },
@@ -479,7 +482,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         setIsLoading(false);
                         showErrorAlert({
                             title: t("error"),
-                            message: t("failed_to_search"),
+                            message: t("list_pos.failed_to_search"),
                             darkMode,
                         });
                     },
@@ -584,7 +587,9 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
     };
 
     const toggleOrderCheckbox = (id, currentOrder) => {
+        setCheckboxLoading((prev) => ({ ...prev, [id]: true })); // Set loading for this PO
         const newOrder = !currentOrder;
+
         router.post(`/po/${id}/toggle-order`, { order: newOrder }, {
             onSuccess: () => {
                 setData((prev) =>
@@ -594,17 +599,19 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                 );
                 showSuccessAlert({
                     title: t("success"),
-                    message: t("order_updated_successfully"),
+                    message: t("list_pos.order_updated_successfully"),
                     darkMode,
                     timeout: 3000,
                 });
+                setCheckboxLoading((prev) => ({ ...prev, [id]: false })); // Clear loading
             },
             onError: () => {
                 showErrorAlert({
                     title: t("error"),
-                    message: t("failed_to_update_order"),
+                    message: t("list_pos.failed_to_update_order"),
                     darkMode,
                 });
+                setCheckboxLoading((prev) => ({ ...prev, [id]: false })); // Clear loading
             },
             preserveScroll: true,
         });
@@ -788,18 +795,19 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+
     const sortableColumns = [
         { key: 'product_code', label: t("code") },
-        { key: 'name', label: t("name") },
-        { key: 'date', label: t("date") },
-        { key: 'amount', label: t("amount") },
-        { key: 'remark', label: t("remark") },
-        { key: 'rating', label: t("rating") },
-        { key: 'order', label: t("order") },
+        { key: 'name', label: t("list_pos.name") },
+        { key: 'date', label: t("list_pos.date") },
+        { key: 'amount', label: t("list_pos.amount") },
+        { key: 'remark', label: t("list_pos.remark") },
+        { key: 'rating', label: t("list_pos.rating") },
+        { key: 'order', label: t("list_pos.order") },
     ];
 
     const allColumns = [
-        { key: 'checkbox', label: t("checkbox") },
+        { key: 'checkbox', label: t("list_pos.checkbox") },
         { key: 'no', label: t("no") },
         { key: 'photo', label: t("photo") },
         ...sortableColumns,
@@ -807,7 +815,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
 
     return (
         <>
-            <Head title={t("list_purchase_orders")} />
+            <Head title={t("list_po")} />
             <style>
                 {`
                     @keyframes growFromPoint {
@@ -879,6 +887,15 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                 "border-[#ff8800] text-[#ff8800] bg-white hover:bg-[#ff8800] hover:text-white"
                             )} ${selectedPOs.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                             disabled={selectedPOs.length === 0}
+                            onClick={() => {
+                                if (selectedPOs.length > 0) {
+                                // Construct the URL with selected po.id values
+                                const idPos = selectedPOs.join('&');
+                                const url = `/pi/create?id_pos=${idPos}`;
+                                // Open the URL in a new tab
+                                window.open(url, '_blank');
+                                }
+                            }}
                         >
                             <svg
                                 className="w-5 h-5"
@@ -888,10 +905,10 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                 xmlns="http://www.w3.org/2000/svg"
                             >
                                 <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 7l5 5m0 0l-5 5m5-5H6"
                                 />
                             </svg>
                             {t("create_pi")}
@@ -902,7 +919,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                             <table className="w-full border-collapse" ref={tableRef}>
                                 <thead>
                                     <tr
-                                        className={`${getDarkModeClass(
+                                        className={`uppercase ${getDarkModeClass(
                                             darkMode,
                                             "bg-[#2D2D2D] border-b border-gray-700",
                                             "bg-[#ff8800]"
@@ -1299,16 +1316,24 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                                             className="p-3"
                                                         >
                                                             <div className="flex flex-col items-start">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!po.order}
-                                                                    onChange={() => toggleOrderCheckbox(po.id, po.order)}
-                                                                    className={`custom-checkbox ${getDarkModeClass(
-                                                                        darkMode,
-                                                                        "custom-checkbox-border-darkmode",
-                                                                        "custom-checkbox-border"
-                                                                    )}`}
-                                                                />
+                                                                {checkboxLoading[po.id] ? (
+                                                                    <Spinner
+                                                                        width="16px"
+                                                                        height="16px"
+                                                                        className="mb-1"
+                                                                    />
+                                                                ) : (
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={!!po.order}
+                                                                        onChange={() => toggleOrderCheckbox(po.id, po.order)}
+                                                                        className={`custom-checkbox ${getDarkModeClass(
+                                                                            darkMode,
+                                                                            "custom-checkbox-border-darkmode",
+                                                                            "custom-checkbox-border"
+                                                                        )}`}
+                                                                    />
+                                                                )}
                                                                 {po.date_auto_order && (
                                                                     <span className="text-xs mt-1 text-gray-500">
                                                                         {formatDate(po.date_auto_order)}
@@ -1446,7 +1471,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         }}
                     >
                         <div className="p-3">
-                            <h3 className="text-center font-semibold mb-3">{t("filter_by_rating")}</h3>
+                            <h3 className="text-center font-semibold mb-3">{t("list_pos.filter_by_rating")}</h3>
                             {[1, 2, 3, 4, 5].map((rating) => (
                                 <label
                                     key={rating}
@@ -1461,7 +1486,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                         className="rounded h-4 w-4 text-orange-500 focus:ring-orange-400 border-gray-300"
                                     />
                                     <span className="flex items-center">
-                                        {t(rating === 1 ? "star" : "stars", { count: rating })}
+                                        {t(`list_pos.${rating === 1 ? "star" : "stars"}`, { count: rating })}
                                         <span className="ml-2 flex space-x-0.5">{renderCheckboxStars(rating)}</span>
                                     </span>
                                 </label>
@@ -1478,7 +1503,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             : "bg-orange-500 text-white hover:bg-orange-600"
                                     }`}
                                 >
-                                    {t("apply")}
+                                    {t("list_pos.apply")}
                                 </button>
                                 <button
                                     onClick={() => toggleRatingPopup(new Event('click'))}
@@ -1509,7 +1534,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         }}
                     >
                         <div className="p-4">
-                            <h3 className="text-center font-semibold mb-4">{t("filter_by_date")}</h3>
+                            <h3 className="text-center font-semibold mb-4">{t("list_pos.filter_by_date")}</h3>
                             <div className="space-y-4">
                                 <div>
                                     <label
@@ -1519,10 +1544,10 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("start_date")}
+                                        {t("list_pos.start_date")}
                                     </label>
                                     <MuiStyleDatePicker
-                                        label={t("start_date")}
+                                        label={t("list_pos.start_date")}
                                         value={startDate}
                                         onChange={(value) => setStartDate(value)}
                                         darkMode={darkMode}
@@ -1541,10 +1566,10 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("end_date")}
+                                        {t("list_pos.end_date")}
                                     </label>
                                     <MuiStyleDatePicker
-                                        label={t("end_date")}
+                                        label={t("list_pos.end_date")}
                                         value={endDate}
                                         onChange={(value) => setEndDate(value)}
                                         darkMode={darkMode}
@@ -1568,7 +1593,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             : "bg-orange-500 text-white hover:bg-orange-600"
                                     }`}
                                 >
-                                    {t("apply")}
+                                    {t("list_pos.apply")}
                                 </button>
                                 <button
                                     onClick={() => toggleDatePopup(new Event('click'))}
@@ -1599,8 +1624,8 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         }}
                     >
                         <div className="p-3">
-                            <h3 className="text-center font-semibold mb-3">{t("filter_by_order")}</h3>
-                            {[{ value: 1, label: t("ordered") }, { value: 0, label: t("not_ordered") }].map((status) => (
+                            <h3 className="text-center font-semibold mb-3">{t("list_pos.filter_by_order")}</h3>
+                            {[{ value: 1, label: t("list_pos.ordered") }, { value: 0, label: t("list_pos.not_ordered") }].map((status) => (
                                 <label
                                     key={status.value}
                                     className={`flex items-center space-x-3 mb-3 text-sm cursor-pointer transition-colors duration-150 ${
@@ -1628,7 +1653,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             : "bg-orange-500 text-white hover:bg-orange-600"
                                     }`}
                                 >
-                                    {t("apply")}
+                                    {t("list_pos.apply")}
                                 </button>
                                 <button
                                     onClick={() => toggleOrderPopup(new Event('click'))}
@@ -1659,11 +1684,11 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                         }}
                     >
                         <div className="p-3 flex flex-col max-h-96">
-                            <h3 className="text-center font-semibold mb-3">{t("column_settings")}</h3>
+                            <h3 className="text-center font-semibold mb-3">{t("list_pos.column_settings")}</h3>
                             <div className="mb-3">
                                 <input
                                     type="text"
-                                    placeholder={t("search_columns")}
+                                    placeholder={t("list_pos.search_columns")}
                                     value={columnSearchQuery}
                                     onChange={(e) => setColumnSearchQuery(e.target.value)}
                                     className={`w-full p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff8800] shadow-sm hover:shadow-md transition-shadow duration-200 ${getDarkModeClass(
@@ -1711,7 +1736,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                         "border-[#ff8800] text-[#ff8800] bg-white hover:bg-[#ff8800] hover:text-white"
                                     )} shadow-md flex items-center justify-center gap-2`}
                                 >
-                                    {t("reset")}
+                                    {t("list_pos.reset")}
                                 </button>
                                 <button
                                     onClick={() => toggleSettingPopup(new Event('click'))}
@@ -1752,7 +1777,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                             )}`}
                         >
                             <h2
-                                className={`text-2xl font-bold mb-4 flex items-center ${getDarkModeClass(
+                                className={`uppercase text-2xl font-bold mb-4 flex items-center ${getDarkModeClass(
                                     darkMode,
                                     "text-gray-200",
                                     "text-gray-800"
@@ -1762,7 +1787,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                     className="w-6 h-6 mr-2 text-orange-500"
                                     fill="none"
                                     stroke="currentColor"
-                                    viewBox="00 24 24"
+                                    viewBox="0 0 24 24"
                                     xmlns="http://www.w3.org/2000/svg"
                                 >
                                     <path
@@ -1772,20 +1797,20 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                                     />
                                 </svg>
-                                {t("edit_purchase_order")}
+                                {t("list_pos.edit_purchase_order")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 pt-0 custom-scrollbar">
                             <form id="edit-po-form" className="space-y-6" onSubmit={handleSubmit}>
                                 <div>
                                     <label
-                                        className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                        className={`uppercase block text-sm font-medium mb-1 ${getDarkModeClass(
                                             darkMode,
                                             "text-gray-300",
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("amount")}
+                                        {t("list_pos.amount")}
                                     </label>
                                    <input
                                         type="text"
@@ -1803,18 +1828,18 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_amount")}
+                                        placeholder={t("list_pos.enter_amount")}
                                     />
                                 </div>
                                 <div>
                                     <label
-                                        className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                        className={`uppercase block text-sm font-medium mb-1 ${getDarkModeClass(
                                             darkMode,
                                             "text-gray-300",
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("rating")}
+                                        {t("list_pos.rating")}
                                     </label>
                                     <div className="flex">
                                         {[1, 2, 3, 4, 5].map((star) => (
@@ -1839,13 +1864,13 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                 </div>
                                 <div>
                                     <label
-                                        className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                        className={`uppercase block text-sm font-medium mb-1 ${getDarkModeClass(
                                             darkMode,
                                             "text-gray-300",
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("remark")}
+                                        {t("list_pos.remark")}
                                     </label>
                                     <textarea
                                         name="remark"
@@ -1859,7 +1884,7 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_remark")}
+                                        placeholder={t("list_pos.enter_remark")}
                                     />
                                 </div>
                             </form>
@@ -1914,4 +1939,3 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
 
 ListPO.title = "po";
 ListPO.subtitle = "list_po";
-

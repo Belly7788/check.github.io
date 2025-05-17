@@ -1,6 +1,7 @@
-import { Link, Head, useForm } from "@inertiajs/react";
+// resources/js/Pages/PI/Create-PI.jsx
+import { Link, Head, useForm, router } from "@inertiajs/react"; // Added router import
 import { useEffect, useState, useRef } from "react";
-import { FaEllipsisV, FaGripVertical } from "react-icons/fa"; // Added FaGripVertical for drag handle
+import { FaEllipsisV, FaGripVertical } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import { getDarkModeClass } from "../../utils/darkModeUtils";
 import MuiStyleDatePicker from "../../BELLY/Component/DatePicker/DatePicker";
@@ -16,8 +17,7 @@ import { showSuccessAlert } from "../../Component/SuccessAlert/SuccessAlert";
 import Spinner from "../../Component/spinner/spinner";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-
-export default function ProductInvoiceForm({ darkMode, auth }) {
+export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts = [], idPos = [] }) {
     const { t } = useTranslation();
     const [productSearch, setProductSearch] = useState("");
     const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
@@ -41,6 +41,7 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
     const [currentRowIndex, setCurrentRowIndex] = useState(null);
     const [animationState, setAnimationState] = useState("closed");
     const [textareaPosition, setTextareaPosition] = useState({ x: 0, y: 0 });
+    const [isLoadingCompanies, setIsLoadingCompanies] = useState(false); // New state for company loading
     const textareaRefs = useRef([]);
     const [imageLoadingStates, setImageLoadingStates] = useState({});
 
@@ -54,7 +55,8 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
         discount: 0,
         extra_charge: 0,
         openbalance: 0,
-        products: [],
+        products: preSelectedProducts,
+        id_pos: idPos,
     });
 
     // Custom style for date picker
@@ -195,6 +197,7 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
     // Fetch companies when dropdown is opened
     useEffect(() => {
         if (isCompanyDropdownOpen) {
+            setIsLoadingCompanies(true); // Set loading to true
             axios.get('/companies/search')
                 .then((response) => {
                     setCompanies(response.data);
@@ -203,6 +206,9 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                 .catch(() => {
                     setCompanies([]);
                     setFilteredCompanies([]);
+                })
+                .finally(() => {
+                    setIsLoadingCompanies(false); // Set loading to false
                 });
         }
     }, [isCompanyDropdownOpen]);
@@ -280,6 +286,24 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
         }));
     }, [data.products, data.discount, data.extra_charge]);
 
+    // Initialize products with pre-selected products
+    useEffect(() => {
+        if (preSelectedProducts.length > 0) {
+            setData('products', preSelectedProducts);
+            // Preload images for pre-selected products
+            const newImageLoadingStates = {};
+            preSelectedProducts.forEach(product => {
+                if (product.photo && product.product_id) {
+                    newImageLoadingStates[product.product_id] = true;
+                    preloadImage(product.product_id, product.photo);
+                } else {
+                    newImageLoadingStates[product.product_id] = false;
+                }
+            });
+            setImageLoadingStates(newImageLoadingStates);
+        }
+    }, [preSelectedProducts]);
+
     // Handle product selection
     const handleProductSelect = (product) => {
         const existingProductIndex = data.products.findIndex(
@@ -310,6 +334,7 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                 unit_price: 0,
                 subTotal: 0,
                 note: "",
+                po_detail_ids: [],
             };
             setData("products", [...data.products, newProduct]);
         }
@@ -454,20 +479,28 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                     message: t("create_invoice.pi_created_successfully"),
                     darkMode,
                 });
+                // Reset form and state
                 reset();
-                // Explicitly reset pi_name and pi_name_cn
                 setData({
-                    ...data,
+                    pi_number: "",
+                    date: today,
                     pi_name: "",
                     pi_name_cn: "",
-                    products: [], // Also ensure products is reset (from your previous question)
+                    company_id: "",
+                    discount: 0,
+                    extra_charge: 0,
+                    openbalance: 0,
+                    products: [],
+                    id_pos: [],
                 });
                 setPiNumber("");
                 setSelectedCompany(null);
                 setCompanySearch("");
-                setProductSearch(""); // Optionally reset product search
+                setProductSearch("");
                 setProducts([]);
                 setIsProductDropdownOpen(false);
+                // Clear route query parameters
+                router.visit('/pi/create', { replace: true });
             },
             onError: async (errors) => {
                 let errorMessage = t("create_invoice.error_creating_pi");
@@ -477,6 +510,8 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                     errorMessage = t("create_invoice.company_required");
                 } else if (errors.products) {
                     errorMessage = t("create_invoice.products_required");
+                } else if (errors.id_pos) {
+                    errorMessage = t("create_invoice.invalid_id_pos");
                 } else {
                     errorMessage = Object.values(errors).join(", ");
                 }
@@ -514,7 +549,7 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
 
     // Handle drag end to reorder products
     const onDragEnd = (result) => {
-        if (!result.destination) return; // Dropped outside the list
+        if (!result.destination) return;
 
         const reorderedProducts = [...data.products];
         const [movedProduct] = reorderedProducts.splice(result.source.index, 1);
@@ -751,7 +786,6 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                                                 "border-gray-300"
                                             )}`}
                                         >
-                                            {/* New th for drag handle */}
                                             <th
                                                 className={`w-8 text-left ${getDarkModeClass(
                                                     darkMode,
@@ -759,7 +793,6 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                                                     "text-white"
                                                 )}`}
                                             ></th>
-                                            {/* Existing th for row numbers */}
                                             <th
                                                 className={`pl-1 py-3 w-10 text-left ${getDarkModeClass(
                                                     darkMode,
@@ -835,7 +868,6 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                                                                         "bg-gray-50 text-gray-900 border-gray-200 hover:bg-gray-100"
                                                                     )} ${snapshot.isDragging ? "opacity-75" : ""}`}
                                                                 >
-                                                                    {/* New td for drag handle */}
                                                                     <td
                                                                         className="py-3"
                                                                         {...provided.dragHandleProps}
@@ -848,7 +880,6 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                                                                             )}`}
                                                                         />
                                                                     </td>
-                                                                    {/* Existing td for row number */}
                                                                     <td className="pl-1 py-3">
                                                                         {index + 1}
                                                                     </td>
@@ -1276,7 +1307,18 @@ export default function ProductInvoiceForm({ darkMode, auth }) {
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                     >
-                                        {filteredCompanies.length > 0 ? (
+                                        {isLoadingCompanies ? (
+                                            <div className="py-2 px-4">
+                                                <ShimmerLoading
+                                                    darkMode={darkMode}
+                                                    rowCount={3}
+                                                    colCount={1}
+                                                    width="100%"
+                                                    height="40px"
+                                                    borderRadius="8px"
+                                                />
+                                            </div>
+                                        ) : filteredCompanies.length > 0 ? (
                                             filteredCompanies.map((company) => (
                                                 <div
                                                     key={company.id}

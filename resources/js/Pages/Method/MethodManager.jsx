@@ -12,24 +12,24 @@ import Bellypopover from '../../BELLY/Component/Popover/Popover';
 import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
 
-export default function RoleManager({ darkMode, roles, filters, flash }) {
+export default function MethodManager({ darkMode, methods, filters, flash }) {
     const { t } = useTranslation();
 
     // State for pagination
-    const [currentPage, setCurrentPage] = useState(roles.current_page || 1);
-    const totalEntries = roles.total || 0;
-    const [entriesPerPage, setEntriesPerPage] = useState(roles.per_page || 25);
+    const [currentPage, setCurrentPage] = useState(methods.current_page || 1);
+    const totalEntries = methods.total || 0;
+    const [entriesPerPage, setEntriesPerPage] = useState(methods.per_page || 25);
 
     // State for popup
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
-    const [editRoleId, setEditRoleId] = useState(null);
+    const [editMethodId, setEditMethodId] = useState(null);
 
     // State for form
     const [formData, setFormData] = useState({
-        rolename: "",
-        desc: "",
-        permissionid: null,
+        name_method: "",
+        numberdate: "",
+        note: "",
     });
 
     // State for search
@@ -43,22 +43,22 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
 
     // State for loading
     const [isSaving, setIsSaving] = useState(false);
-    const [isFetchingRole, setIsFetchingRole] = useState(null);
-    const [isLoading, setIsLoading] = useState(false); // New loading state
+    const [isFetchingMethod, setIsFetchingMethod] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Popup controls
-    const openPopup = (edit = false, role = null) => {
+    const openPopup = (edit = false, method = null) => {
         setIsEditMode(edit);
-        if (edit && role) {
-            setEditRoleId(role.id);
+        if (edit && method) {
+            setEditMethodId(method.id);
             setFormData({
-                rolename: role.rolename,
-                desc: role.desc || "",
-                permissionid: role.permissionid || null,
+                name_method: method.name_method || "",
+                numberdate: method.numberdate || "",
+                note: method.note || "",
             });
         } else {
-            setEditRoleId(null);
-            setFormData({ rolename: "", desc: "", permissionid: null });
+            setEditMethodId(null);
+            setFormData({ name_method: "", numberdate: "", note: "" });
         }
         setIsPopupOpen(true);
     };
@@ -66,8 +66,8 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     const closePopup = () => {
         setIsPopupOpen(false);
         setIsEditMode(false);
-        setEditRoleId(null);
-        setFormData({ rolename: "", desc: "", permissionid: null });
+        setEditMethodId(null);
+        setFormData({ name_method: "", numberdate: "", note: "" });
     };
 
     // Toggle row dropdown
@@ -79,7 +79,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         e.preventDefault();
         setIsSaving(true);
         const method = isEditMode ? "put" : "post";
-        const url = isEditMode ? `/settings/role/${editRoleId}` : "/settings/role";
+        const url = isEditMode ? `/settings/status/method/${editMethodId}` : "/settings/status/method";
 
         router[method](url, formData, {
             onSuccess: () => {
@@ -87,14 +87,14 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                 closePopup();
                 showSuccessAlert({
                     title: t("success"),
-                    message: isEditMode ? t("role_updated_successfully") : t("role_created_successfully"),
+                    message: isEditMode ? t("method_updated_successfully") : t("method_created_successfully"),
                     darkMode,
                     timeout: 3000,
                 });
             },
             onError: (errors) => {
                 setIsSaving(false);
-                const errorMessage = errors.rolename ? t("rolename_taken") : Object.values(errors).join(", ") || t("failed_to_save");
+                const errorMessage = errors.name_method ? t("method_name_taken") : Object.values(errors).join(", ") || t("failed_to_save");
                 showErrorAlert({
                     title: t("error"),
                     message: errorMessage,
@@ -105,17 +105,17 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         });
     };
 
-    const handleDelete = (roleId) => {
+    const handleDelete = (methodId) => {
         showConfirmAlert({
             title: t("confirm_delete_title"),
             message: t("confirm_delete"),
             darkMode,
             onConfirm: () => {
-                router.delete(`/settings/role/${roleId}`, {
+                router.delete(`/settings/status/method/${methodId}`, {
                     onSuccess: () => {
                         showSuccessAlert({
                             title: t("success"),
-                            message: t("role_deleted_successfully"),
+                            message: t("method_deleted_successfully"),
                             darkMode,
                             timeout: 3000,
                         });
@@ -136,14 +136,14 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     // Handle search
     const handleSearch = (e) => {
         if (e.key === "Enter") {
-            setIsLoading(true); // Show loading when searching
+            setIsLoading(true);
             router.get(
-                "/settings/role/role-management",
+                "/settings/status/method",
                 { search: searchQuery, per_page: entriesPerPage, page: 1 },
                 {
                     preserveState: true,
                     preserveScroll: true,
-                    onFinish: () => setIsLoading(false), // Hide loading after fetch
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }
@@ -152,14 +152,14 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     // Handle pagination
     const handlePageChange = (page) => {
         setCurrentPage(page);
-        setIsLoading(true); // Show loading when changing page
+        setIsLoading(true);
         router.get(
-            "/settings/role/role-management",
+            "/settings/status/method",
             { search: searchQuery, per_page: entriesPerPage, page },
             {
                 preserveState: true,
                 preserveScroll: true,
-                onFinish: () => setIsLoading(false), // Hide loading after fetch
+                onFinish: () => setIsLoading(false),
             }
         );
     };
@@ -176,22 +176,22 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
 
         setEntriesPerPage(newEntriesPerPage);
         setCurrentPage(newPage);
-        setIsLoading(true); // Show loading when changing entries per page
+        setIsLoading(true);
         router.get(
-            "/settings/role/role-management",
+            "/settings/status/method",
             { search: searchQuery, per_page: newEntriesPerPage, page: newPage },
             {
                 preserveState: true,
                 preserveScroll: true,
-                onFinish: () => setIsLoading(false), // Hide loading after fetch
+                onFinish: () => setIsLoading(false),
             }
         );
     };
 
-    // Fetch role data for edit
-    const handleEditClick = (roleId) => {
-        setIsFetchingRole(roleId);
-        fetch(`/settings/role/${roleId}`, {
+    // Fetch method data for edit
+    const handleEditClick = (methodId) => {
+        setIsFetchingMethod(methodId);
+        fetch(`/settings/status/method/${methodId}`, {
             headers: {
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
@@ -199,18 +199,25 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         })
             .then((response) => response.json())
             .then((data) => {
-                setIsFetchingRole(null);
+                setIsFetchingMethod(null);
                 openPopup(true, data);
             })
             .catch((error) => {
-                setIsFetchingRole(null);
-                // console.error('Error fetching role data:', error);
+                setIsFetchingMethod(null);
                 showErrorAlert({
                     title: t("error"),
-                    message: t("failed_to_fetch_role"),
+                    message: t("failed_to_fetch_method"),
                     darkMode,
                 });
             });
+    };
+
+    // Handle number input restriction
+    const handleNumberInput = (e) => {
+        const value = e.target.value;
+        if (value === "" || /^\d*$/.test(value)) {
+            setFormData({ ...formData, numberdate: value });
+        }
     };
 
     // Handle ESC and click outside
@@ -238,13 +245,9 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         const handleCtrlEnter = (event) => {
             if (event.ctrlKey && event.key === "Enter" && isPopupOpen && !isSaving) {
                 event.preventDefault();
-                // console.log("Ctrl + Enter pressed, attempting to click submit button");
-                const submitButton = document.getElementById("submit-role-btn");
+                const submitButton = document.getElementById("submit-method-btn");
                 if (submitButton) {
-                    // console.log("Submit button found, triggering click");
                     submitButton.click();
-                } else {
-                    console.error("Submit button not found");
                 }
             }
         };
@@ -257,7 +260,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
 
     return (
         <>
-            <Head title={t("role_list")} />
+            <Head title={t("method_list")} />
 
             <div
                 className={`w-full rounded-lg shadow-md ${getDarkModeClass(
@@ -265,7 +268,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                     "bg-[#1A1A1A] text-gray-200",
                     "bg-white text-gray-900"
                 )}`}
-                style={{ fontFamily: "'Battambang', 'Roboto', sans-serif" }}
+               style={{ fontFamily: "'Battambang', 'Roboto', sans-serif" }}
             >
                 <div className="w-full mx-auto p-2">
                     {/* Search and Buttons */}
@@ -342,7 +345,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("role_name")}
+                                            {t("method_name")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -351,7 +354,16 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("description")}
+                                            {t("number_date")}
+                                        </th>
+                                        <th
+                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                                darkMode,
+                                                "bg-[#2D2D2D] text-gray-300",
+                                                "bg-[#ff8800] text-white"
+                                            )}`}
+                                        >
+                                            {t("note")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -365,12 +377,12 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                     </tr>
                                 </thead>
                                 {isLoading ? (
-                                    <TableLoading darkMode={darkMode} rowCount={entriesPerPage} colCount={4} />
+                                    <TableLoading darkMode={darkMode} rowCount={entriesPerPage} colCount={5} />
                                 ) : (
                                     <tbody>
-                                        {roles.data.map((role, index) => (
+                                        {methods.data.map((method, index) => (
                                             <tr
-                                                key={role.id}
+                                                key={method.id}
                                                 onClick={() => toggleRowDropdown(index)}
                                                 className={`border-b cursor-pointer ${getDarkModeClass(
                                                     darkMode,
@@ -380,7 +392,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                             >
                                                 <td className="p-3">{(currentPage - 1) * entriesPerPage + index + 1}</td>
                                                 <td className="p-3">
-                                                    <Clipboard darkMode={darkMode} textToCopy={role.rolename}>
+                                                    <Clipboard darkMode={darkMode} textToCopy={method.name_method || ""}>
                                                         <Bellypopover darkMode={darkMode}>
                                                             <span
                                                                 className={`label-Purple ${getDarkModeClass(
@@ -388,19 +400,34 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                     "label-Purple-darkmode",
                                                                     ""
                                                                 )}`}
-                                                                data-belly-caption={role.rolename}
+                                                                data-belly-caption={method.name_method || ""}
                                                             >
-                                                                {role.rolename.length > 20
-                                                                    ? `${role.rolename.substring(0, 17)}...`
-                                                                    : role.rolename}
+                                                                {method.name_method && method.name_method.length > 20
+                                                                    ? `${method.name_method.substring(0, 17)}...`
+                                                                    : method.name_method || ""}
                                                             </span>
                                                         </Bellypopover>
                                                     </Clipboard>
                                                 </td>
+                                               <td className="p-3">
+                                                    {method.numberdate !== null && method.numberdate !== undefined ? (
+                                                        <Clipboard darkMode={darkMode} textToCopy={method.numberdate.toString()}>
+                                                            <Bellypopover darkMode={darkMode}>
+                                                                <span
+                                                                    className={`label-green ${getDarkModeClass(darkMode, "label-green-darkmode", "")}`}
+                                                                    data-belly-caption={method.numberdate.toString()} // Convert to string
+                                                                >
+                                                                    {method.numberdate}
+                                                                </span>
+                                                            </Bellypopover>
+                                                        </Clipboard>
+                                                    ) : (
+                                                        ""
+                                                    )}
+                                                </td>
                                                 <td className="p-3">
-                                                    {role.desc ? (
-
-                                                        <Clipboard darkMode={darkMode} textToCopy={role.desc}>
+                                                    {method.note ? (
+                                                        <Clipboard darkMode={darkMode} textToCopy={method.note}>
                                                             <Bellypopover darkMode={darkMode}>
                                                                 <span
                                                                     className={`label-orange ${getDarkModeClass(
@@ -408,9 +435,11 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                         "label-orange-darkmode",
                                                                         ""
                                                                     )}`}
-                                                                    data-belly-caption={role.desc}
+                                                                    data-belly-caption={method.note}
                                                                 >
-                                                                    {role.desc.length > 20 ? `${role.desc.substring(0, 17)}...` : role.desc}
+                                                                    {method.note.length > 20
+                                                                        ? `${method.note.substring(0, 17)}...`
+                                                                        : method.note}
                                                                 </span>
                                                             </Bellypopover>
                                                         </Clipboard>
@@ -424,7 +453,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setOpenActionDropdown(
-                                                                    openActionDropdown === role.id ? null : role.id
+                                                                    openActionDropdown === method.id ? null : method.id
                                                                 );
                                                             }}
                                                             className={`text-gray-500 hover:text-[#ff8800] p-2 rounded transition duration-200 ${getDarkModeClass(
@@ -435,7 +464,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                         >
                                                             <FaEllipsisV className="w-5 h-5" />
                                                         </button>
-                                                        {openActionDropdown === role.id && (
+                                                        {openActionDropdown === method.id && (
                                                             <div
                                                                 className={`absolute w-40 right-20 rounded-lg shadow-lg z-20 ${getDarkModeClass(
                                                                     darkMode,
@@ -444,19 +473,24 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                 )}`}
                                                             >
                                                                 <button
-                                                                    onClick={() => handleEditClick(role.id)}
-                                                                    disabled={isFetchingRole === role.id}
+                                                                    onClick={() => handleEditClick(method.id)}
+                                                                    disabled={isFetchingMethod === method.id}
                                                                     className={`w-full text-left hover:rounded px-4 py-2 text-sm flex items-center ${getDarkModeClass(
                                                                         darkMode,
                                                                         "hover:bg-[#3A3A3A]",
                                                                         "hover:bg-gray-100"
-                                                                    )} ${isFetchingRole === role.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                                    )} ${isFetchingMethod === method.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                 >
-                                                                    {isFetchingRole === role.id ? (
-                                                                        <Spinner width="16px" height="16px" borderColor="#e5e7eb"  // ពណ៌ខៀវ
-                                                                                    borderBgColor="#ff8800" // ពណ៌ប្រផេះ
-                                                                                    borderWidth="3px"
-                                                                        duration="0.8s" className="mr-2" />
+                                                                    {isFetchingMethod === method.id ? (
+                                                                        <Spinner
+                                                                            width="16px"
+                                                                            height="16px"
+                                                                            borderColor="#e5e7eb"
+                                                                            borderBgColor="#ff8800"
+                                                                            borderWidth="3px"
+                                                                            duration="0.8s"
+                                                                            className="mr-2"
+                                                                        />
                                                                     ) : (
                                                                         <svg
                                                                             className="w-4 h-4 mr-2 text-orange-400"
@@ -476,7 +510,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                     {t("edit")}
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleDelete(role.id)}
+                                                                    onClick={() => handleDelete(method.id)}
                                                                     className={`w-full text-left px-4 hover:rounded py-2 text-sm flex items-center ${getDarkModeClass(
                                                                         darkMode,
                                                                         "hover:bg-[#3A3A3A]",
@@ -522,7 +556,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                     />
                 </div>
 
-                {/* Popup for Adding/Editing Role */}
+                {/* Popup for Adding/Editing Method */}
                 <div
                     id="add-new-popup"
                     className={`fixed inset-0 bg-gray-900 flex items-center justify-center z-50 transition-all duration-300 ease-in-out ${
@@ -564,11 +598,11 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                         d="M12 4v16m8-8H4"
                                     />
                                 </svg>
-                                {isEditMode ? t("edit_role") : t("add_new_role")}
+                                {isEditMode ? t("edit_method") : t("add_new_method")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
-                            <form id="add-role-form" onSubmit={handleSubmit} className="space-y-6">
+                            <form id="add-method-form" onSubmit={handleSubmit} className="space-y-6">
                                 <div>
                                     <label
                                         className={`block text-sm font-medium mb-1 ${getDarkModeClass(
@@ -577,19 +611,19 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("role_name")}
+                                        {t("method_name")}
                                     </label>
                                     <input
                                         type="text"
-                                        name="rolename"
-                                        value={formData.rolename}
-                                        onChange={(e) => setFormData({ ...formData, rolename: e.target.value })}
+                                        name="name_method"
+                                        value={formData.name_method}
+                                        onChange={(e) => setFormData({ ...formData, name_method: e.target.value })}
                                         className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                             darkMode,
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_role_name")}
+                                        placeholder={t("enter_method_name")}
                                     />
                                 </div>
                                 <div>
@@ -600,19 +634,42 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("description")}
+                                        {t("number_date")}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="numberdate"
+                                        value={formData.numberdate}
+                                        onInput={handleNumberInput}
+                                        className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
+                                            darkMode,
+                                            "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                            "bg-white text-gray-900 border-gray-200"
+                                        )}`}
+                                        placeholder={t("enter_number_date")}
+                                    />
+                                </div>
+                                <div>
+                                    <label
+                                        className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                            darkMode,
+                                            "text-gray-300",
+                                            "text-gray-700"
+                                        )}`}
+                                    >
+                                        {t("note")}
                                     </label>
                                     <textarea
-                                        name="desc"
-                                        value={formData.desc}
-                                        onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                                        name="note"
+                                        value={formData.note}
+                                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                                         className={`w-full h-[10rem] custom-scrollbar border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                             darkMode,
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_description")}
+                                        placeholder={t("enter_note")}
                                     />
                                 </div>
                             </form>
@@ -639,8 +696,8 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    id="submit-role-btn"
-                                    form="add-role-form"
+                                    id="submit-method-btn"
+                                    form="add-method-form"
                                     disabled={isSaving}
                                     className={`border flex items-center justify-center ${getDarkModeClass(
                                         darkMode,
@@ -649,10 +706,15 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                     )} font-semibold py-2.5 px-6 rounded-lg transition duration-200 shadow-md ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {isSaving ? (
-                                        <Spinner width="18px" height="18px" borderColor="#e5e7eb"  // ពណ៌ខៀវ
-                                                borderBgColor="#ff8800" // ពណ៌ប្រផេះ
-                                                borderWidth="3px"
-                                            duration="0.8s" className="mr-2" />
+                                        <Spinner
+                                            width="18px"
+                                            height="18px"
+                                            borderColor="#e5e7eb"
+                                            borderBgColor="#ff8800"
+                                            borderWidth="3px"
+                                            duration="0.8s"
+                                            className="mr-2"
+                                        />
                                     ) : (
                                         t("save")
                                     )}
@@ -667,5 +729,5 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     );
 }
 
-RoleManager.title = "role";
-RoleManager.subtitle = "role_list";
+MethodManager.title = "method";
+MethodManager.subtitle = "method_list";

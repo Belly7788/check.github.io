@@ -750,7 +750,7 @@ export function Layout({ children }) {
                         onClick={() => setActiveMenu("/settings/status/shipment")}
                         darkMode={darkMode}
                       />
-                      <NavItem
+                      {/* <NavItem
                         href="/settings/status/warehouse"
                         icon={
                           <svg
@@ -773,7 +773,7 @@ export function Layout({ children }) {
                         active={basePath === "/settings/status/warehouse"}
                         onClick={() => setActiveMenu("/settings/status/warehouse")}
                         darkMode={darkMode}
-                      />
+                      /> */}
                     </div>
                   )}
                 </div>

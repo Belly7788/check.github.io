@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('tbpo_detail', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('tbproduct')->onDelete('cascade');
-            $table->date('date')->default(now())->nullable(); // Set default to current date
+            $table->date('date')->default(now())->nullable();
             $table->integer('amount')->nullable();
             $table->integer('rating')->nullable();
             $table->text('remark')->nullable();
             $table->integer('order')->default(0);
+            $table->date('date_auto_order')->nullable();
             $table->foreignId('user_id')->constrained('tbluser')->onDelete('cascade');
             $table->integer('status')->default(1);
             $table->timestamps();
