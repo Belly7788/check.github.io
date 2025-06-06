@@ -11,6 +11,7 @@ import Pagination from "../../Component/Pagination/Pagination";
 import Bellypopover from '../../BELLY/Component/Popover/Popover';
 import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
+import { checkPermission } from '../../utils/permissionUtils';
 
 export default function CompanyManager({ darkMode, companies, filters, flash }) {
     const { t } = useTranslation();
@@ -73,61 +74,108 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
         setExpandedRow(expandedRow === index ? null : index);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-        const method = isEditMode ? "put" : "post";
-        const url = isEditMode ? `/settings/status/company/${editCompanyId}` : "/settings/status/company";
+    const view_company = 45;
 
-        router[method](url, formData, {
-            onSuccess: () => {
-                setIsSaving(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: isEditMode ? t("company_updated_successfully") : t("company_created_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-            },
-            onError: (errors) => {
-                setIsSaving(false);
-                const errorMessage = errors.company_name ? t("company_name_taken") : Object.values(errors).join(", ") || t("failed_to_save");
+    useEffect(() => {
+        checkPermission(view_company, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
+    const create_company = 42;
+    const update_company = 43;
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const permissionId = isEditMode ? update_company : create_company;
+
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
-            preserveScroll: true,
+                return;
+            }
+            setIsSaving(true);
+            const method = isEditMode ? "put" : "post";
+            const url = isEditMode ? `/settings/status/company/${editCompanyId}` : "/settings/status/company";
+
+            router[method](url, formData, {
+                onSuccess: () => {
+                    setIsSaving(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: isEditMode ? t("company_t.company_updated_successfully") : t("company_t.company_created_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                },
+                onError: (errors) => {
+                    setIsSaving(false);
+                    const errorMessage = errors.company_name ? t("company_t.company_name_taken") : Object.values(errors).join(", ") || t("company_t.failed_to_save");
+                    showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+                preserveScroll: true,
+            });
         });
     };
 
+    const delete_company = 44;
     const handleDelete = (companyId) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete"),
-            darkMode,
-            onConfirm: () => {
-                router.delete(`/settings/status/company/${companyId}`, {
-                    onSuccess: () => {
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("company_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                    },
-                    onError: () => {
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("failed_to_delete"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+        checkPermission(delete_company, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("company_t.confirm_delete"),
+                darkMode,
+                onConfirm: () => {
+                    router.delete(`/settings/status/company/${companyId}`, {
+                        onSuccess: () => {
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("company_t.company_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                        },
+                        onError: () => {
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("company_t.failed_to_delete"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
@@ -204,7 +252,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                 setIsFetchingCompany(null);
                 showErrorAlert({
                     title: t("error"),
-                    message: t("failed_to_fetch_company"),
+                    message: t("company_t.failed_to_fetch_company"),
                     darkMode,
                 });
             });
@@ -250,7 +298,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
 
     return (
         <>
-            <Head title={t("company_list")} />
+            <Head title={t("company_t.company_list")} />
 
             <div
                 className={`w-full rounded-lg shadow-md ${getDarkModeClass(
@@ -335,7 +383,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("company_name")}
+                                            {t("company_t.company_name")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -344,7 +392,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("remark")}
+                                            {t("company_t.remark")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -563,7 +611,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                         d="M12 4v16m8-8H4"
                                     />
                                 </svg>
-                                {isEditMode ? t("edit_company") : t("add_new_company")}
+                                {isEditMode ? t("company_t.edit_company") : t("company_t.add_new_company")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
@@ -576,7 +624,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("company_name")}
+                                        {t("company_t.company_name")}
                                     </label>
                                     <input
                                         type="text"
@@ -588,7 +636,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_company_name")}
+                                        placeholder={t("company_t.enter_company_name")}
                                     />
                                 </div>
                                 <div>
@@ -599,7 +647,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("remark")}
+                                        {t("company_t.remark")}
                                     </label>
                                     <textarea
                                         name="remark"
@@ -611,7 +659,7 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_remark")}
+                                        placeholder={t("company_t.enter_remark")}
                                     />
                                 </div>
                             </form>
@@ -672,4 +720,4 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
 }
 
 CompanyManager.title = "company";
-CompanyManager.subtitle = "company_list";
+CompanyManager.subtitle = "company_t.company_list";

@@ -10,6 +10,7 @@ import { showConfirmAlert } from "../../Component/Confirm-Alert/Confirm-Alert";
 import Spinner from "../../Component/spinner/spinner";
 import '../../BELLY/Component/Gallery/gallery_belly';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
+import { checkPermission } from '../../utils/permissionUtils';
 
 export default function UserManager({ darkMode, users, pagination, roles, branches, companies, search }) {
     const { t } = useTranslation();
@@ -177,129 +178,176 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
         setSelectedCompanies(selectedCompanies.filter((c) => c !== companyId));
     };
 
+    const view_user=31;
+
+    useEffect(() => {
+        checkPermission(view_user, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
     // Handle form submission with validation
+    const create_user=29;
+    const update_user=30;
     const handleSubmit = (e) => {
         e.preventDefault();
+        const permissionId = editingUser ? update_user : create_user;
 
-        // Password length validation
-        if (!editingUser && password.length < 8) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("password_too_short"),
-                darkMode,
-            });
-            return;
-        }
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                });
+                return;
+            }
 
-        // Password confirmation validation
-        if (!editingUser && password !== confirmPassword) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("passwords_do_not_match"),
-                darkMode,
-            });
-            return;
-        }
 
-        setIsSaving(true);
-        const data = {
-            username,
-            password,
-            password_confirmation: confirmPassword,
-            role_id: selectedRole,
-            branch_id: selectedBranchDefault || null,
-            branch_id_multiple: selectedBranches,
-            company_id_multiple: selectedCompanies,
-            desc: desc || null,
-            image,
-        };
+            // Password length validation
+            if (!editingUser && password.length < 8) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("password_too_short"),
+                    darkMode,
+                });
+                return;
+            }
 
-        const request = editingUser
-            ? router.put(`/settings/user/user-management/${editingUser.id}`, data, {
-                  onSuccess: () => {
-                      setIsSaving(false);
-                      closePopup();
-                      showSuccessAlert({
-                          title: t("success"),
-                          message: t("user_updated_success"),
-                          darkMode,
-                      });
-                  },
-                  onError: (errors) => {
-                      setIsSaving(false);
-                      let errorMessage = t("user_update_failed");
-                      if (errors.username) {
-                          errorMessage = t("username_exists");
-                      } else if (errors.password) {
-                          errorMessage = t("password_too_short");
-                      } else if (errors.role_id) {
-                          errorMessage = t("role_required");
-                      }
-                      showErrorAlert({
-                          title: t("error"),
-                          message: errorMessage,
-                          darkMode,
-                      });
-                  },
-              })
-            : router.post('/settings/user/user-management', data, {
-                  onSuccess: () => {
-                      setIsSaving(false);
-                      closePopup();
-                      showSuccessAlert({
-                          title: t("success"),
-                          message: t("user_created_success"),
-                          darkMode,
-                      });
-                  },
-                  onError: (errors) => {
-                      setIsSaving(false);
-                      let errorMessage = t("user_create_failed");
-                      if (errors.username) {
-                          errorMessage = t("username_exists");
-                      } else if (errors.password) {
-                          errorMessage = t("password_too_short");
-                      } else if (errors.role_id) {
-                          errorMessage = t("role_required");
-                      }
-                      showErrorAlert({
-                          title: t("error"),
-                          message: errorMessage,
-                          darkMode,
-                      });
-                  },
-              });
-    };
+            // Password confirmation validation
+            if (!editingUser && password !== confirmPassword) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("passwords_do_not_match"),
+                    darkMode,
+                });
+                return;
+            }
 
-    // Handle delete with confirmation
-    const handleDelete = (id) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete_message"),
-            darkMode,
-            isLoading: isDeleting[id],
-            onConfirm: () => {
-                setIsDeleting((prev) => ({ ...prev, [id]: true }));
-                router.put(`/settings/user/user-management/${id}/status`, {}, {
+            setIsSaving(true);
+            const data = {
+                username,
+                password,
+                password_confirmation: confirmPassword,
+                role_id: selectedRole,
+                branch_id: selectedBranchDefault || null,
+                branch_id_multiple: selectedBranches,
+                company_id_multiple: selectedCompanies,
+                desc: desc || null,
+                image,
+            };
+
+            const request = editingUser
+                ? router.put(`/settings/user/user-management/${editingUser.id}`, data, {
                     onSuccess: () => {
-                        setIsDeleting((prev) => ({ ...prev, [id]: false }));
-                        setOpenActionDropdown(null);
+                        setIsSaving(false);
+                        closePopup();
                         showSuccessAlert({
                             title: t("success"),
-                            message: t("user_deleted_success"),
+                            message: t("user_updated_success"),
                             darkMode,
                         });
                     },
                     onError: (errors) => {
-                        setIsDeleting((prev) => ({ ...prev, [id]: false }));
+                        setIsSaving(false);
+                        let errorMessage = t("user_update_failed");
+                        if (errors.username) {
+                            errorMessage = t("username_exists");
+                        } else if (errors.password) {
+                            errorMessage = t("password_too_short");
+                        } else if (errors.role_id) {
+                            errorMessage = t("role_required");
+                        }
                         showErrorAlert({
                             title: t("error"),
-                            message: errors.message || t("user_delete_failed"),
+                            message: errorMessage,
+                            darkMode,
+                        });
+                    },
+                })
+                : router.post('/settings/user/user-management', data, {
+                    onSuccess: () => {
+                        setIsSaving(false);
+                        closePopup();
+                        showSuccessAlert({
+                            title: t("success"),
+                            message: t("user_created_success"),
+                            darkMode,
+                        });
+                    },
+                    onError: (errors) => {
+                        setIsSaving(false);
+                        let errorMessage = t("user_create_failed");
+                        if (errors.username) {
+                            errorMessage = t("username_exists");
+                        } else if (errors.password) {
+                            errorMessage = t("password_too_short");
+                        } else if (errors.role_id) {
+                            errorMessage = t("role_required");
+                        }
+                        showErrorAlert({
+                            title: t("error"),
+                            message: errorMessage,
                             darkMode,
                         });
                     },
                 });
-            },
+        });
+    };
+
+    // Handle delete with confirmation
+    const delete_user =32;
+    const handleDelete = (id) => {
+        checkPermission(delete_user, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                });
+                return;
+            }
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("confirm_delete_message"),
+                darkMode,
+                isLoading: isDeleting[id],
+                onConfirm: () => {
+                    setIsDeleting((prev) => ({ ...prev, [id]: true }));
+                    router.put(`/settings/user/user-management/${id}/status`, {}, {
+                        onSuccess: () => {
+                            setIsDeleting((prev) => ({ ...prev, [id]: false }));
+                            setOpenActionDropdown(null);
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("user_deleted_success"),
+                                darkMode,
+                            });
+                        },
+                        onError: (errors) => {
+                            setIsDeleting((prev) => ({ ...prev, [id]: false }));
+                            showErrorAlert({
+                                title: t("error"),
+                                message: errors.message || t("user_delete_failed"),
+                                darkMode,
+                            });
+                        },
+                    });
+                },
+            });
         });
     };
 
@@ -553,11 +601,11 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                                                         <div className="w-12 h-12 rounded-full overflow-hidden">
                                                             {user.image ? (
                                                                 <img
-                                                                    src={user.image}
-                                                                    alt="User profile"
+                                                                    src={`/storage/${user.image}`}
+                                                                    alt={user.username}
                                                                     className="w-full h-full object-cover"
                                                                     loading="lazy"
-                                                                    data-kheng-chetra="belly-gallery-profile"
+                                                                    data-kheng-chetra={`belly-gallery-profile-${user.id}`}
                                                                 />
                                                             ) : (
                                                                 <div

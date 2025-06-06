@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('branch_name_en', 50);
             $table->string('branch_name_kh', 50);
-            $table->text('remark');
+            $table->text('remark')->nullable();
             $table->integer('status')->default(1); // int(11) NOT NULL DEFAULT 1
             $table->timestamps();
         });

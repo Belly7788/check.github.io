@@ -5,6 +5,7 @@ import { Logo } from "../Logo/EzeLogo";
 import "../../css/scrollbar/scrollbar.css";
 import { showConfirmAlert } from "../Component/Confirm-Alert/Confirm-Alert";
 import { useTranslation } from "react-i18next";
+import { checkPermission } from '../utils/permissionUtils';
 
 export function Layout({ children }) {
   const { props } = usePage();
@@ -31,6 +32,24 @@ export function Layout({ children }) {
 
   // Extract base path without query parameters
   const basePath = url.split("?")[0]; // Removes query parameters
+  const [hasShowProductPermission, setHasShowProductPermission] = useState(false);
+  const [hasShowPOPermission, setHasShowPOPermission] = useState(false);
+  const [hasShowPIPermission, setHasShowPIPermission] = useState(false);
+  const [hasShowSettingPermission, setHasShowSettingPermission] = useState(false);
+  const [hasShowListProductPermission, setHasShowListProductPermission] = useState(false);
+  const [hasShowProductCostPermission, setHasShowProductCostPermission] = useState(false);
+  const [hasShowCreatePOPermission, setHasShowCreatePOPermission] = useState(false);
+  const [hasShowCreatePIPermission, setHasShowCreatePIPermission] = useState(false);
+  const [hasShowListPOPermission, setHasShowListPOPermission] = useState(false);
+  const [hasShowListPIPermission, setHasShowListPIPermission] = useState(false);
+  const [hasShowPaymentPermission, setHasShowPaymentPermission] = useState(false);
+  const [hasShowUserPermission, setHasShowUserPermission] = useState(false);
+  const [hasShowRolePermission, setHasShowRolePermission] = useState(false);
+  const [hasShowStatusPermission, setHasShowStatusPermission] = useState(false);
+  const [hasShowBranchPermission, setHasShowBranchPermission] = useState(false);
+  const [hasShowCompanyPermission, setHasShowCompanyPermission] = useState(false);
+  const [hasShowMethodPermission, setHasShowMethodPermission] = useState(false);
+  const [hasShowShipmentPermission, setHasShowShipmentPermission] = useState(false);
 
   const firstLetter = user.username ? user.username.charAt(0).toUpperCase() : "U";
 
@@ -43,15 +62,107 @@ export function Layout({ children }) {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
-  useEffect(() => {
-    // Set active menu based on basePath
-    setActiveMenu(basePath);
-    if (basePath.startsWith("/product")) setProductOpen(true);
-    if (basePath.startsWith("/po")) setPoOpen(true);
-    if (basePath.startsWith("/pi")) setPiOpen(true);
-    if (basePath.startsWith("/settings")) setSettingsOpen(true);
-    if (basePath.startsWith("/settings/status")) setStatusOpen(true);
-  }, [basePath]);
+
+    const show_product = 61;
+    const show_po = 62;
+    const show_pi = 63;
+    const show_setting = 64;
+    const show_listproduct = 12;
+    const show_product_cost = 65;
+    const show_create_po = 69;
+    const show_list_po = 18;
+    const show_list_pi = 24;
+    const show_create_pi = 70;
+    const show_payment = 56;
+    const show_user = 31;
+    const show_role = 36;
+    const show_status = 71;
+    const show_branch = 41;
+    const show_company = 45;
+    const show_method = 49;
+    const show_shipment = 53;
+    useEffect(() => {
+        // Set active menu based on basePath
+        setActiveMenu(basePath);
+        if (basePath.startsWith("/product")) setProductOpen(true);
+        if (basePath.startsWith("/po")) setPoOpen(true);
+        if (basePath.startsWith("/pi")) setPiOpen(true);
+        if (basePath.startsWith("/settings")) setSettingsOpen(true);
+        if (basePath.startsWith("/settings/status")) setStatusOpen(true);
+
+        checkPermission(show_method, (hasPermission) => {
+            setHasShowMethodPermission(hasPermission);
+        });
+
+        checkPermission(show_shipment, (hasPermission) => {
+            setHasShowShipmentPermission(hasPermission);
+        });
+
+        checkPermission(show_company, (hasPermission) => {
+            setHasShowCompanyPermission(hasPermission);
+        });
+
+        checkPermission(show_branch, (hasPermission) => {
+            setHasShowBranchPermission(hasPermission);
+        });
+
+        checkPermission(show_user, (hasPermission) => {
+            setHasShowUserPermission(hasPermission);
+        });
+
+        checkPermission(show_role, (hasPermission) => {
+            setHasShowRolePermission(hasPermission);
+        });
+
+        checkPermission(show_status, (hasPermission) => {
+            setHasShowStatusPermission(hasPermission);
+        });
+
+        checkPermission(show_product, (hasPermission) => {
+            setHasShowProductPermission(hasPermission);
+        });
+
+        checkPermission(show_po, (hasPermission) => {
+            setHasShowPOPermission(hasPermission);
+        });
+
+        checkPermission(show_pi, (hasPermission) => {
+            setHasShowPIPermission(hasPermission);
+        });
+
+        checkPermission(show_setting, (hasPermission) => {
+            setHasShowSettingPermission(hasPermission);
+        });
+
+        checkPermission(show_listproduct, (hasPermission) => {
+            setHasShowListProductPermission(hasPermission);
+        });
+
+        checkPermission(show_product_cost, (hasPermission) => {
+            setHasShowProductCostPermission(hasPermission);
+        });
+
+        checkPermission(show_create_po, (hasPermission) => {
+            setHasShowCreatePOPermission(hasPermission);
+        });
+
+        checkPermission(show_create_pi, (hasPermission) => {
+            setHasShowCreatePIPermission(hasPermission);
+        });
+
+        checkPermission(show_list_po, (hasPermission) => {
+            setHasShowListPOPermission(hasPermission);
+        });
+
+        checkPermission(show_list_pi, (hasPermission) => {
+            setHasShowListPIPermission(hasPermission);
+        });
+
+        checkPermission(show_payment, (hasPermission) => {
+            setHasShowPaymentPermission(hasPermission);
+        });
+
+    }, [basePath]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -148,638 +259,652 @@ export function Layout({ children }) {
           />
 
           {/* Product Menu with Dropdown */}
-          <div className="w-full">
-            <button
-              onClick={toggleProduct}
-              className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                basePath.startsWith("/product")
-                  ? darkMode
-                    ? "bg-gray-700 text-white"
-                    : "bg-white text-[#ff8800]"
-                  : darkMode
-                  ? "hover:bg-gray-700"
-                  : "hover:bg-white"
-              }`}
-            >
-              <span className="flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          {hasShowProductPermission && (
+            <div className="w-full">
+                <button
+                onClick={toggleProduct}
+                className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
+                    basePath.startsWith("/product")
+                    ? darkMode
+                        ? "bg-gray-700 text-white"
+                        : "bg-white text-[#ff8800]"
+                    : darkMode
+                    ? "hover:bg-gray-700"
+                    : "hover:bg-white"
+                }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                  />
-                </svg>
-              </span>
-              {sidebarOpen && (
-                <div className="ml-4 flex-1 flex justify-between items-center">
-                  <span>{t("product")}</span>
-                  <svg
+                <span className="flex-shrink-0">
+                    <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 transition-transform duration-200 ${
-                      productOpen ? "transform rotate-180" : ""
-                    }`}
+                    className="h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                  >
+                    >
                     <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                     />
-                  </svg>
-                </div>
-              )}
-            </button>
-            {productOpen && sidebarOpen && (
-              <div className="ml-8 pl-2 mt-1 space-y-1">
-                <NavItem
-                  href="/product/productlist"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
                     </svg>
-                  }
-                  text={t("list_products")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/product/productlist"}
-                  onClick={() => setActiveMenu("/product/productlist")}
-                  darkMode={darkMode}
-                />
-                <NavItem
-                  href="/product/product_cost"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  }
-                  text={t("product_cost")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/product/product_cost"}
-                  onClick={() => setActiveMenu("/product/product_cost")}
-                  darkMode={darkMode}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* PO Menu with Dropdown */}
-          <div className="w-full">
-            <button
-              onClick={togglePo}
-              className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                basePath.startsWith("/po")
-                  ? darkMode
-                    ? "bg-gray-700 text-white"
-                    : "bg-white text-[#ff8800]"
-                  : darkMode
-                  ? "hover:bg-gray-700"
-                  : "hover:bg-white"
-              }`}
-            >
-              <span className="flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </span>
-              {sidebarOpen && (
-                <div className="ml-4 flex-1 flex justify-between items-center">
-                  <span>{t("po")}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 transition-transform duration-200 ${
-                      poOpen ? "transform rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              )}
-            </button>
-            {poOpen && sidebarOpen && (
-              <div className="ml-8 pl-2 mt-1 space-y-1">
-                <NavItem
-                  href="/po/create"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  }
-                  text={t("create_po")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/po/create"}
-                  onClick={() => setActiveMenu("/po/create")}
-                  darkMode={darkMode}
-                />
-                <NavItem
-                  href="/po/list"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-
-
-                    </svg>
-                  }
-                  text={t("list_po")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/po/list"}
-                  onClick={() => setActiveMenu("/po/list")}
-                  darkMode={darkMode}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* PI Menu with Dropdown */}
-          <div className="w-full">
-            <button
-              onClick={togglePi}
-              className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                basePath.startsWith("/pi")
-                  ? darkMode
-                    ? "bg-gray-700 text-white"
-                    : "bg-white text-[#ff8800]"
-                  : darkMode
-                  ? "hover:bg-gray-700"
-                  : "hover:bg-white"
-              }`}
-            >
-              <span className="flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
-                  />
-                </svg>
-              </span>
-              {sidebarOpen && (
-                <div className="ml-4 flex-1 flex justify-between items-center">
-                  <span>{t("pi")}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 transition-transform duration-200 ${
-                      piOpen ? "transform rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              )}
-            </button>
-            {piOpen && sidebarOpen && (
-              <div className="ml-8 mt-1 space-y-1">
-                <NavItem
-                  href="/pi/create"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  }
-                  text={t("create_pi")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/pi/create"}
-                  onClick={() => setActiveMenu("/pi/create")}
-                  darkMode={darkMode}
-                />
-                <NavItem
-                  href="/pi/list"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  }
-                  text={t("list_pi")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/pi/list"}
-                  onClick={() => setActiveMenu("/pi/list")}
-                  darkMode={darkMode}
-                />
-              </div>
-            )}
-          </div>
-
-          <NavItem
-            href="/payment"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            }
-            text={t("payment")}
-            sidebarOpen={sidebarOpen}
-            active={basePath === "/payment"}
-            onClick={() => setActiveMenu("/payment")}
-            darkMode={darkMode}
-          />
-
-          {/* Settings Menu with Dropdown */}
-          <div className="mt-auto w-full mb-4">
-            <button
-              onClick={toggleSettings}
-              className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
-                basePath.startsWith("/settings")
-                  ? darkMode
-                    ? "bg-gray-700 text-white"
-                    : "bg-white text-[#ff8800]"
-                  : darkMode
-                  ? "hover:bg-gray-700"
-                  : "hover:bg-white"
-              }`}
-            >
-              <span className="flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </span>
-              {sidebarOpen && (
-                <div className="ml-4 flex-1 flex justify-between items-center">
-                  <span>{t("settings")}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 transition-transform duration-200 ${
-                      settingsOpen ? "transform rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              )}
-            </button>
-            {settingsOpen && sidebarOpen && (
-              <div className="ml-8 pl-2 mt-1 space-y-1">
-                <NavItem
-                  href="/settings/user/user-management"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  }
-                  text={t("user")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/settings/user/user-management"}
-                  onClick={() => setActiveMenu("/settings/user/user-management")}
-                  darkMode={darkMode}
-                />
-                <NavItem
-                  href="/settings/role/role-management"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  }
-                  text={t("role")}
-                  sidebarOpen={sidebarOpen}
-                  active={basePath === "/settings/role/role-management"}
-                  onClick={() => setActiveMenu("/settings/role/role-management")}
-                  darkMode={darkMode}
-                />
-                <div className="w-full">
-                  <button
-                    onClick={toggleStatus}
-                    className={`flex items-center p-2 w-full rounded-lg transition-colors duration-200 ${
-                      basePath.startsWith("/settings/status")
-                        ? darkMode
-                          ? "bg-gray-700 text-white"
-                          : "bg-white text-[#ff8800]"
-                        : darkMode
-                        ? "hover:bg-gray-700"
-                        : "hover:bg-white"
-                    }`}
-                  >
-                    <span className="flex-shrink-0">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </span>
+                </span>
+                {sidebarOpen && (
                     <div className="ml-4 flex-1 flex justify-between items-center">
-                      <span>{t("status")}</span>
-                      <svg
+                    <span>{t("product")}</span>
+                    <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className={`h-4 w-4 transition-transform duration-200 ${
-                          statusOpen ? "transform rotate-180" : ""
+                        productOpen ? "transform rotate-180" : ""
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
-                      >
+                    >
                         <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
                         />
-                      </svg>
+                    </svg>
                     </div>
-                  </button>
-                  {statusOpen && (
-                    <div className="ml-8 pl-2 mt-1 space-y-1">
-                      <NavItem
-                        href="/settings/status/branch"
-                        icon={
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        }
-                        text={t("branch")}
-                        sidebarOpen={sidebarOpen}
-                        active={basePath === "/settings/status/branch"}
-                        onClick={() => setActiveMenu("/settings/status/branch")}
-                        darkMode={darkMode}
-                      />
-                      <NavItem
-                        href="/settings/status/company"
-                        icon={
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        }
-                        text={t("company")}
-                        sidebarOpen={sidebarOpen}
-                        active={basePath === "/settings/status/company"}
-                        onClick={() => setActiveMenu("/settings/status/company")}
-                        darkMode={darkMode}
-                      />
-                      <NavItem
-                        href="/settings/status/method"
-                        icon={
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        }
-                        text={t("method")}
-                        sidebarOpen={sidebarOpen}
-                        active={basePath === "/settings/status/method"}
-                        onClick={() => setActiveMenu("/settings/status/method")}
-                        darkMode={darkMode}
-                      />
-                      <NavItem
-                        href="/settings/status/shipment"
-                        icon={
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        }
-                        text={t("shipment")}
-                        sidebarOpen={sidebarOpen}
-                        active={basePath === "/settings/status/shipment"}
-                        onClick={() => setActiveMenu("/settings/status/shipment")}
-                        darkMode={darkMode}
-                      />
-                      {/* <NavItem
-                        href="/settings/status/warehouse"
-                        icon={
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        }
-                        text={t("warehouse")}
-                        sidebarOpen={sidebarOpen}
-                        active={basePath === "/settings/status/warehouse"}
-                        onClick={() => setActiveMenu("/settings/status/warehouse")}
-                        darkMode={darkMode}
-                      /> */}
-                    </div>
-                  )}
+                )}
+                </button>
+                {productOpen && sidebarOpen && (
+                <div className="ml-8 pl-2 mt-1 space-y-1">
+                    {hasShowListProductPermission && (
+                        <NavItem
+                            href="/product/productlist"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("list_products")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/product/productlist"}
+                            onClick={() => setActiveMenu("/product/productlist")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                    {hasShowProductCostPermission && (
+                        <NavItem
+                            href="/product/product_cost"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("product_cost")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/product/product_cost"}
+                            onClick={() => setActiveMenu("/product/product_cost")}
+                            darkMode={darkMode}
+                        />
+                    )}
                 </div>
-              </div>
+                )}
+            </div>
+          )}
+
+          {/* PO Menu with Dropdown */}
+          {hasShowPOPermission && (
+            <div className="w-full">
+                <button
+                onClick={togglePo}
+                className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
+                    basePath.startsWith("/po")
+                    ? darkMode
+                        ? "bg-gray-700 text-white"
+                        : "bg-white text-[#ff8800]"
+                    : darkMode
+                    ? "hover:bg-gray-700"
+                    : "hover:bg-white"
+                }`}
+                >
+                <span className="flex-shrink-0">
+                    <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                    </svg>
+                </span>
+                {sidebarOpen && (
+                    <div className="ml-4 flex-1 flex justify-between items-center">
+                    <span>{t("po")}</span>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                        poOpen ? "transform rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                        />
+                    </svg>
+                    </div>
+                )}
+                </button>
+                {poOpen && sidebarOpen && (
+                <div className="ml-8 pl-2 mt-1 space-y-1">
+                    {hasShowCreatePOPermission && (
+                        <NavItem
+                            href="/po/create"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("create_po")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/po/create"}
+                            onClick={() => setActiveMenu("/po/create")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                    {hasShowListPOPermission && (
+                        <NavItem
+                            href="/po/list"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+
+
+                                </svg>
+                            }
+                            text={t("list_po")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/po/list"}
+                            onClick={() => setActiveMenu("/po/list")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                </div>
+                )}
+            </div>
+          )}
+
+          {/* PI Menu with Dropdown */}
+          {hasShowPIPermission && (
+            <div className="w-full">
+                <button
+                onClick={togglePi}
+                className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
+                    basePath.startsWith("/pi")
+                    ? darkMode
+                        ? "bg-gray-700 text-white"
+                        : "bg-white text-[#ff8800]"
+                    : darkMode
+                    ? "hover:bg-gray-700"
+                    : "hover:bg-white"
+                }`}
+                >
+                <span className="flex-shrink-0">
+                    <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    >
+                    <path
+                        d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"
+                    />
+                    </svg>
+                </span>
+                {sidebarOpen && (
+                    <div className="ml-4 flex-1 flex justify-between items-center">
+                    <span>{t("pi")}</span>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                        piOpen ? "transform rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                        />
+                    </svg>
+                    </div>
+                )}
+                </button>
+                {piOpen && sidebarOpen && (
+                <div className="ml-8 mt-1 space-y-1">
+                    {hasShowCreatePIPermission && (
+                        <NavItem
+                            href="/pi/create"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("create_pi")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/pi/create"}
+                            onClick={() => setActiveMenu("/pi/create")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                    {hasShowListPIPermission && (
+                        <NavItem
+                            href="/pi/list"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("list_pi")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/pi/list"}
+                            onClick={() => setActiveMenu("/pi/list")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                </div>
+                )}
+            </div>
+          )}
+
+            {hasShowPaymentPermission && (
+                <NavItem
+                    href="/payment"
+                    icon={
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                    </svg>
+                    }
+                    text={t("payment")}
+                    sidebarOpen={sidebarOpen}
+                    active={basePath === "/payment"}
+                    onClick={() => setActiveMenu("/payment")}
+                    darkMode={darkMode}
+                />
             )}
-          </div>
+
+          {/* Settings Menu with Dropdown */}
+          {hasShowSettingPermission && (
+            <div className="mt-auto w-full mb-4">
+                <button
+                onClick={toggleSettings}
+                className={`flex items-center p-2 pl-3 w-full rounded-lg transition-colors duration-200 ${
+                    basePath.startsWith("/settings")
+                    ? darkMode
+                        ? "bg-gray-700 text-white"
+                        : "bg-white text-[#ff8800]"
+                    : darkMode
+                    ? "hover:bg-gray-700"
+                    : "hover:bg-white"
+                }`}
+                >
+                <span className="flex-shrink-0">
+                    <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    </svg>
+                </span>
+                {sidebarOpen && (
+                    <div className="ml-4 flex-1 flex justify-between items-center">
+                    <span>{t("settings")}</span>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                        settingsOpen ? "transform rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                        />
+                    </svg>
+                    </div>
+                )}
+                </button>
+                {settingsOpen && sidebarOpen && (
+                <div className="ml-8 pl-2 mt-1 space-y-1">
+                    {hasShowUserPermission && (
+                        <NavItem
+                            href="/settings/user/user-management"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("user")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/settings/user/user-management"}
+                            onClick={() => setActiveMenu("/settings/user/user-management")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                    {hasShowRolePermission && (
+                        <NavItem
+                            href="/settings/role/role-management"
+                            icon={
+                                <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                />
+                                </svg>
+                            }
+                            text={t("role")}
+                            sidebarOpen={sidebarOpen}
+                            active={basePath === "/settings/role/role-management"}
+                            onClick={() => setActiveMenu("/settings/role/role-management")}
+                            darkMode={darkMode}
+                        />
+                    )}
+                    <div className="w-full">
+                    {hasShowStatusPermission && (
+                        <button
+                            onClick={toggleStatus}
+                            className={`flex items-center p-2 w-full rounded-lg transition-colors duration-200 ${
+                            basePath.startsWith("/settings/status")
+                                ? darkMode
+                                ? "bg-gray-700 text-white"
+                                : "bg-white text-[#ff8800]"
+                                : darkMode
+                                ? "hover:bg-gray-700"
+                                : "hover:bg-white"
+                            }`}
+                        >
+                            <span className="flex-shrink-0">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                                />
+                            </svg>
+                            </span>
+                            <div className="ml-4 flex-1 flex justify-between items-center">
+                            <span>{t("status")}</span>
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`h-4 w-4 transition-transform duration-200 ${
+                                statusOpen ? "transform rotate-180" : ""
+                                }`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                                />
+                            </svg>
+                            </div>
+                        </button>
+                    )}
+                    {statusOpen && (
+                        <div className="ml-8 pl-2 mt-1 space-y-1">
+                            {hasShowBranchPermission && (
+                                <NavItem
+                                    href="/settings/status/branch"
+                                    icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                        />
+                                    </svg>
+                                    }
+                                    text={t("branch")}
+                                    sidebarOpen={sidebarOpen}
+                                    active={basePath === "/settings/status/branch"}
+                                    onClick={() => setActiveMenu("/settings/status/branch")}
+                                    darkMode={darkMode}
+                                />
+                            )}
+                            {hasShowCompanyPermission && (
+                                <NavItem
+                                    href="/settings/status/company"
+                                    icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                        />
+                                    </svg>
+                                    }
+                                    text={t("company")}
+                                    sidebarOpen={sidebarOpen}
+                                    active={basePath === "/settings/status/company"}
+                                    onClick={() => setActiveMenu("/settings/status/company")}
+                                    darkMode={darkMode}
+                                />
+                            )}
+                            {hasShowMethodPermission && (
+                                <NavItem
+                                    href="/settings/status/method"
+                                    icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                        />
+                                    </svg>
+                                    }
+                                    text={t("method")}
+                                    sidebarOpen={sidebarOpen}
+                                    active={basePath === "/settings/status/method"}
+                                    onClick={() => setActiveMenu("/settings/status/method")}
+                                    darkMode={darkMode}
+                                />
+                            )}
+
+                            {hasShowShipmentPermission && (
+                                <NavItem
+                                    href="/settings/status/shipment"
+                                    icon={
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-4 w-4"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 5l7 7-7 7"
+                                        />
+                                    </svg>
+                                    }
+                                    text={t("shipment")}
+                                    sidebarOpen={sidebarOpen}
+                                    active={basePath === "/settings/status/shipment"}
+                                    onClick={() => setActiveMenu("/settings/status/shipment")}
+                                    darkMode={darkMode}
+                                />
+                            )}
+
+                        </div>
+                    )}
+                    </div>
+                </div>
+                )}
+            </div>
+          )}
         </nav>
       </div>
 
@@ -983,7 +1108,7 @@ export function Layout({ children }) {
                   <div className="w-8 h-8 rounded-full bg-gray-300 overflow-hidden">
                     {user.image ? (
                       <img
-                        src={user.image}
+                        src={`/storage/${user.image}`}
                         alt="User profile"
                         className="w-full h-full object-cover"
                       />
@@ -1034,7 +1159,7 @@ export function Layout({ children }) {
                       {user.username || "User"}
                     </p>
                     <Link
-                      href="/settings"
+                      href="/settings/profile"
                       className={`block px-4 py-2 text-sm transition-colors duration-200 ${
                         darkMode
                           ? "text-gray-200 hover:bg-gray-700"

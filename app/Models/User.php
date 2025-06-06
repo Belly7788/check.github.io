@@ -22,6 +22,8 @@ class User extends Authenticatable
         'branch_id_multiple',
         'company_id_multiple',
         'created_by',
+        'email',
+        'cover',
     ];
 
     protected $hidden = [

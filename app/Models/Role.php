@@ -11,9 +11,18 @@ class Role extends Model
 
     protected $table = 'tbrole';
 
-    protected $fillable = ['rolename', 'desc', 'permissionid'];
+    protected $fillable = ['rolename', 'desc'];
 
-    protected $casts = [
-        'permissionid' => 'integer',
-    ];
+    // Relationship with compile_permission
+    public function compilePermissions()
+    {
+        return $this->hasMany(CompilePermission::class, 'role_id');
+    }
+
+    // Get permission IDs from compile_permission
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class, 'compile_permission', 'role_id', 'permission_id')
+                    ->withPivot('sub_permission_id', 'check_permission_id');
+    }
 }

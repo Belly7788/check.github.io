@@ -1,25 +1,28 @@
 import { Link, usePage, useForm, Head } from "@inertiajs/react";
 import React, { useState, useEffect } from "react";
-import { EzeLogoForLogin } from "../../Logo/EzeLogo"; // Assuming this is your logo component
+import { EzeLogoForLogin } from "../../Logo/EzeLogo";
 import { Background } from "../../background-animation/background";
+import { useTranslation } from "react-i18next";
 
 const Login = () => {
+    const { t } = useTranslation();
+
     const [showPassword, setShowPassword] = useState(false);
     const [isDay, setIsDay] = useState(true);
     const { errors } = usePage().props;
 
     const { data, setData, post, processing } = useForm({
-        username: '',
+        login: '', // Changed from 'username' to 'login'
         password: '',
     });
 
     useEffect(() => {
         const updateTime = () => {
             const hour = new Date().getHours();
-            setIsDay(hour >= 6 && hour < 18); // Day: 6 AM - 6 PM, Night: 6 PM - 6 AM
+            setIsDay(hour >= 6 && hour < 18);
         };
         updateTime();
-        const interval = setInterval(updateTime, 60000); // Update every minute
+        const interval = setInterval(updateTime, 60000);
         return () => clearInterval(interval);
     }, []);
 
@@ -34,9 +37,8 @@ const Login = () => {
     };
 
     return (
-
         <>
-            <Head title="Login"/>
+            <Head title={t('login_page.title')} />
             <div className={`min-h-screen flex items-center justify-center relative overflow-hidden ${isDay ? 'bg-blue-50' : 'bg-gray-900'}`}>
                 <Background />
                 <div className={`w-[25rem] p-8 rounded-lg shadow-2xl max-w-md z-10 relative ${isDay ? 'bg-white bg-opacity-95 backdrop-blur-md border border-white/30' : 'bg-gray-800 bg-opacity-95 backdrop-blur-md border border-gray-700/50'}`}>
@@ -45,28 +47,28 @@ const Login = () => {
                     </div>
                     <div className="flex justify-center mb-6">
                         <h1 className={`block text-xl font-bold mb-2 ${isDay ? 'text-gray-700' : 'text-gray-200'}`}>
-                            Sign in to your account
+                            {t('login_page.sign_in')}
                         </h1>
                     </div>
                     <form onSubmit={handleSubmit}>
                         <div className="mb-6">
-                            <label htmlFor="username" className={`block text-sm font-bold mb-2 ${isDay ? 'text-gray-700' : 'text-gray-300'}`}>
-                                Username
+                            <label htmlFor="login" className={`block text-sm font-bold mb-2 ${isDay ? 'text-gray-700' : 'text-gray-300'}`}>
+                                {t('login_page.login_label')}
                             </label>
                             <input
                                 type="text"
-                                id="username"
-                                value={data.username}
-                                onChange={(e) => setData('username', e.target.value)}
+                                id="login"
+                                value={data.login}
+                                onChange={(e) => setData('login', e.target.value)}
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff8800] focus:border-transparent ${isDay ? 'border-gray-300' : 'border-gray-600 bg-gray-700 text-gray-200'}`}
-                                placeholder="Enter your username"
+                                placeholder={t('login_page.login_placeholder')}
                                 autoComplete="off"
                             />
-                            {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+                            {errors.login && <p className="text-red-500 text-xs mt-1">{errors.login}</p>}
                         </div>
                         <div className="mb-6">
                             <label htmlFor="password" className={`block text-sm font-bold mb-2 ${isDay ? 'text-gray-700' : 'text-gray-300'}`}>
-                                Password
+                                {t('login_page.password_label')}
                             </label>
                             <div className="relative">
                                 <input
@@ -75,7 +77,7 @@ const Login = () => {
                                     value={data.password}
                                     onChange={(e) => setData('password', e.target.value)}
                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#ff8800] focus:border-transparent ${isDay ? 'border-gray-300' : 'border-gray-600 bg-gray-700 text-gray-200'}`}
-                                    placeholder="Enter your password"
+                                    placeholder={t('login_page.password_placeholder')}
                                 />
                                 <button
                                     type="button"
@@ -102,17 +104,14 @@ const Login = () => {
                                 disabled={processing}
                                 className={`w-full flex items-center border justify-center font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#ff8800] focus:ring-opacity-50 disabled:opacity-50 ${isDay ? 'border-[#ff8800] text-[#ff8800] hover:bg-[#ff8800] hover:text-white' : 'border-[#ff8800] text-[#ff8800] hover:bg-[#ff8800] hover:text-white'}`}
                             >
-                                {processing ? 'Logging in...' : 'Login'}
+                                {processing ? t('login_page.logging_in') : t('login_page.login_button')}
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </>
-
     );
 };
 
 export default Login;
-
-

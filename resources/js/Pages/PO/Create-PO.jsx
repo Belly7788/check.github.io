@@ -13,6 +13,7 @@ import ShimmerLoading from "../../Component/Loading/ShimmerLoading/ShimmerLoadin
 import { showErrorAlert } from "../../Component/ErrorAlert/ErrorAlert";
 import { showSuccessAlert } from "../../Component/SuccessAlert/SuccessAlert";
 import Spinner from "../../Component/spinner/spinner";
+import { checkPermission } from '../../utils/permissionUtils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function PurchaseOrderForm({ darkMode, auth }) {
@@ -301,46 +302,59 @@ export default function PurchaseOrderForm({ darkMode, auth }) {
         }, 300);
     };
 
-    // Handle form submission
+
+    const create_po = 16;
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validate amounts are numeric
-        const invalidAmounts = data.products.some(item => !isNumeric(item.amount));
-        if (invalidAmounts) {
-            await showErrorAlert({
-                title: t("error"),
-                message: t("create_purchase_order.amount_invalid"),
-                darkMode,
-            });
-            return;
-        }
-
-        post('/po/store', {
-            onSuccess: async () => {
-                await showSuccessAlert({
-                    title: t("success"),
-                    message: t("create_purchase_order.po_created_successfully"),
-                    darkMode,
-                });
-                setData({
-                    date: today, // Reset to today's date
-                    products: [], // Explicitly clear products
-                });
-            },
-            onError: async (errors) => {
-                let errorMessage = t("create_purchase_order.error_creating_po");
-                if (errors.products) {
-                    errorMessage = t("create_purchase_order.products_required");
-                } else {
-                    errorMessage = Object.values(errors).join(", ");
-                }
+        checkPermission(create_po, async (hasPermission) => {
+            if (!hasPermission) {
                 await showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
+                return;
+            }
+
+            // Existing form submission logic
+            const invalidAmounts = data.products.some(item => !isNumeric(item.amount));
+            if (invalidAmounts) {
+                await showErrorAlert({
+                    title: t("error"),
+                    message: t("create_purchase_order.amount_invalid"),
+                    darkMode,
+                });
+                return;
+            }
+
+            post('/po/store', {
+                onSuccess: async () => {
+                    await showSuccessAlert({
+                        title: t("success"),
+                        message: t("create_purchase_order.po_created_successfully"),
+                        darkMode,
+                    });
+                    setData({
+                        date: today, // Reset to today's date
+                        products: [], // Explicitly clear products
+                    });
+                },
+                onError: async (errors) => {
+                    let errorMessage = t("create_purchase_order.error_creating_po");
+                    if (errors.products) {
+                        errorMessage = t("create_purchase_order.products_required");
+                    } else {
+                        errorMessage = Object.values(errors).join(", ");
+                    }
+                    await showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+            });
         });
     };
 

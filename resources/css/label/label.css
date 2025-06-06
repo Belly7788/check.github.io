@@ -187,3 +187,9 @@
 .label-pink-darkmode:hover {
   box-shadow: 0 0 10px 4px rgba(244, 114, 182, 0.4);
 }
+
+
+
+.text-color-blue {
+    color: blue;
+}

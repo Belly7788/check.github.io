@@ -1,0 +1,53 @@
+/* Light mode - red */
+.red-tracking {
+  border-radius: 100%;
+  background-color: #ef4444;  /* Very light red background */
+  color: #ef4444;            /* Red-500 */
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px 3px rgba(239, 68, 68, 0.5); /* Brighter glow */
+}
+/* Optional hover effects */
+.red-tracking:hover {
+  box-shadow: 0 0 15px 5px rgba(239, 68, 68, 0.6); /* Enhanced glow on hover */
+}
+
+/* Light mode - green */
+.green-tracking {
+  border-radius: 100%;
+  background-color: #22c55e;  /* Very light green background */
+  color: #22c55e;            /* Green-500 */
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px 3px rgba(34, 197, 94, 0.5); /* Brighter glow */
+}
+/* Optional hover effects */
+.green-tracking:hover {
+  box-shadow: 0 0 15px 5px rgba(34, 197, 94, 0.6); /* Enhanced glow on hover */
+}
+
+
+/* Light mode - orange */
+.orange-tracking {
+  border-radius: 100%;
+  background-color: #ff8800;  /* Orange background */
+  color: #ff8800;            /* Orange */
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px 3px rgba(255, 136, 0, 0.5); /* Brighter glow */
+}
+/* Optional hover effects */
+.orange-tracking:hover {
+  box-shadow: 0 0 15px 5px rgba(255, 136, 0, 0.6); /* Enhanced glow on hover */
+}
+
+
+/* Light mode - gray */
+.gray-tracking {
+  border-radius: 100%;
+  background-color: #808080;  /* Gray background */
+  color: #808080;            /* Gray */
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.5); /* Brighter gray glow */
+}
+/* Optional hover effects */
+.gray-tracking:hover {
+  box-shadow: 0 0 15px 5px rgba(128, 128, 128, 0.6); /* Enhanced gray glow on hover */
+}

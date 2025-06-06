@@ -11,8 +11,9 @@ import Pagination from "../../Component/Pagination/Pagination";
 import Bellypopover from '../../BELLY/Component/Popover/Popover';
 import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
+import { checkPermission } from '../../utils/permissionUtils';
 
-export default function RoleManager({ darkMode, roles, filters, flash }) {
+export default function RoleManager({ darkMode, roles, permissions, subPermissions, checkPermissions, filters, flash }) {
     const { t } = useTranslation();
 
     // State for pagination
@@ -29,7 +30,11 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     const [formData, setFormData] = useState({
         rolename: "",
         desc: "",
-        permissionid: null,
+        permission_id: null,
+        sub_permission_id: null,
+        permission_ids: [], // Array to store selected permission IDs
+        sub_permission_ids: [], // Array to store selected sub-permission IDs
+        check_permission_ids: [], // Array to store selected check permission IDs
     });
 
     // State for search
@@ -44,21 +49,113 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     // State for loading
     const [isSaving, setIsSaving] = useState(false);
     const [isFetchingRole, setIsFetchingRole] = useState(null);
-    const [isLoading, setIsLoading] = useState(false); // New loading state
+    const [isLoading, setIsLoading] = useState(false);
+
+    // State for filtered sub-permissions and check permissions
+    const [filteredSubPermissions, setFilteredSubPermissions] = useState([]);
+    const [filteredPermissionCheckboxes, setFilteredPermissionCheckboxes] = useState([]);
+    const [filteredSubPermissionCheckboxes, setFilteredSubPermissionCheckboxes] = useState([]);
+
+    // Initialize form data when popup opens
+    useEffect(() => {
+        if (isPopupOpen && !isEditMode) {
+            setFormData({
+                rolename: "",
+                desc: "",
+                permission_id: null,
+                sub_permission_id: null,
+                permission_ids: [],
+                sub_permission_ids: [],
+                check_permission_ids: [],
+            });
+            setFilteredSubPermissions([]);
+            setFilteredPermissionCheckboxes([]);
+            setFilteredSubPermissionCheckboxes([]);
+        }
+    }, [isPopupOpen]);
+
+    // Update filtered sub-permissions and permission checkboxes when permission_id changes
+    useEffect(() => {
+        if (formData.permission_id) {
+            const selectedPermissionId = parseInt(formData.permission_id);
+            // Filter sub-permissions
+            const filteredSubs = subPermissions.filter(
+                (sub) => sub.permission_id === selectedPermissionId
+            );
+            setFilteredSubPermissions(filteredSubs);
+
+            // Filter permission checkboxes
+            const filteredPermChecks = checkPermissions.filter(
+                (check) => check.permission_id === selectedPermissionId
+            );
+            setFilteredPermissionCheckboxes(filteredPermChecks);
+
+            // Reset sub_permission_id if it no longer matches the filtered sub-permissions
+            setFormData((prev) => ({
+                ...prev,
+                sub_permission_id: filteredSubs.some((sub) => sub.id === prev.sub_permission_id)
+                    ? prev.sub_permission_id
+                    : null,
+            }));
+        } else {
+            setFilteredSubPermissions([]);
+            setFilteredPermissionCheckboxes([]);
+            setFilteredSubPermissionCheckboxes([]);
+            setFormData((prev) => ({
+                ...prev,
+                sub_permission_id: null,
+            }));
+        }
+    }, [formData.permission_id, subPermissions, checkPermissions]);
+
+// Update filtered sub-permission checkboxes when sub_permission_id changes
+useEffect(() => {
+    if (formData.sub_permission_id) {
+        const selectedSubPermissionId = parseInt(formData.sub_permission_id);
+        const filteredSubChecks = checkPermissions.filter(
+            (check) => check.sub_permission_id === selectedSubPermissionId
+        );
+        setFilteredSubPermissionCheckboxes(filteredSubChecks);
+    } else {
+        setFilteredSubPermissionCheckboxes([]);
+    }
+}, [formData.sub_permission_id, checkPermissions]);
 
     // Popup controls
     const openPopup = (edit = false, role = null) => {
         setIsEditMode(edit);
         if (edit && role) {
             setEditRoleId(role.id);
+            const permissionIds = role.compile_permissions
+                .filter((cp) => cp.permission_id && !cp.sub_permission_id && !cp.check_permission_id)
+                .map((cp) => cp.permission_id);
+            const subPermissionIds = role.compile_permissions
+                .filter((cp) => cp.sub_permission_id && !cp.check_permission_id)
+                .map((cp) => cp.sub_permission_id);
+            const checkPermissionIds = role.compile_permissions
+                .filter((cp) => cp.check_permission_id)
+                .map((cp) => cp.check_permission_id);
+
             setFormData({
                 rolename: role.rolename,
                 desc: role.desc || "",
-                permissionid: role.permissionid || null,
+                permission_id: null,
+                sub_permission_id: null,
+                permission_ids: permissionIds,
+                sub_permission_ids: subPermissionIds,
+                check_permission_ids: checkPermissionIds,
             });
         } else {
             setEditRoleId(null);
-            setFormData({ rolename: "", desc: "", permissionid: null });
+            setFormData({
+                rolename: "",
+                desc: "",
+                permission_id: null,
+                sub_permission_id: null,
+                permission_ids: [],
+                sub_permission_ids: [],
+                check_permission_ids: [],
+            });
         }
         setIsPopupOpen(true);
     };
@@ -67,7 +164,18 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         setIsPopupOpen(false);
         setIsEditMode(false);
         setEditRoleId(null);
-        setFormData({ rolename: "", desc: "", permissionid: null });
+        setFormData({
+            rolename: "",
+            desc: "",
+            permission_id: null,
+            sub_permission_id: null,
+            permission_ids: [],
+            sub_permission_ids: [],
+            check_permission_ids: [],
+        });
+        setFilteredSubPermissions([]);
+        setFilteredPermissionCheckboxes([]);
+        setFilteredSubPermissionCheckboxes([]);
     };
 
     // Toggle row dropdown
@@ -75,75 +183,129 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         setExpandedRow(expandedRow === index ? null : index);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-        const method = isEditMode ? "put" : "post";
-        const url = isEditMode ? `/settings/role/${editRoleId}` : "/settings/role";
 
-        router[method](url, formData, {
-            onSuccess: () => {
-                setIsSaving(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: isEditMode ? t("role_updated_successfully") : t("role_created_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-            },
-            onError: (errors) => {
-                setIsSaving(false);
-                const errorMessage = errors.rolename ? t("rolename_taken") : Object.values(errors).join(", ") || t("failed_to_save");
+    const view_role = 36;
+
+    // no view list-product page
+    useEffect(() => {
+        checkPermission(view_role, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
+    const create_role=33;
+    const update_role=34;
+    // Handle form submission
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        const permissionId = isEditMode ? update_role : create_role;
+
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
-            preserveScroll: true,
+                return;
+            }
+
+            setIsSaving(true);
+            const method = isEditMode ? "put" : "post";
+            const url = isEditMode ? `/settings/role/${editRoleId}` : "/settings/role";
+
+            router[method](url, formData, {
+                onSuccess: () => {
+                    setIsSaving(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: isEditMode ? t("role_updated_successfully") : t("role_created_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                },
+                onError: (errors) => {
+                    setIsSaving(false);
+                    const errorMessage = errors.rolename
+                        ? t("rolename_taken")
+                        : Object.values(errors).join(", ") || t("failed_to_save");
+                    showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+                preserveScroll: true,
+            });
         });
     };
 
+    const delete_role=35;
     const handleDelete = (roleId) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete"),
-            darkMode,
-            onConfirm: () => {
-                router.delete(`/settings/role/${roleId}`, {
-                    onSuccess: () => {
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("role_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                    },
-                    onError: () => {
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("failed_to_delete"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+        checkPermission(delete_role, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("confirm_delete"),
+                darkMode,
+                onConfirm: () => {
+                    router.delete(`/settings/role/${roleId}`, {
+                        onSuccess: () => {
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("role_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                        },
+                        onError: () => {
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("failed_to_delete_role"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
     // Handle search
     const handleSearch = (e) => {
         if (e.key === "Enter") {
-            setIsLoading(true); // Show loading when searching
+            setIsLoading(true);
             router.get(
                 "/settings/role/role-management",
                 { search: searchQuery, per_page: entriesPerPage, page: 1 },
                 {
                     preserveState: true,
                     preserveScroll: true,
-                    onFinish: () => setIsLoading(false), // Hide loading after fetch
+                    onFinish: () => setIsLoading(false),
                 }
             );
         }
@@ -152,14 +314,14 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
     // Handle pagination
     const handlePageChange = (page) => {
         setCurrentPage(page);
-        setIsLoading(true); // Show loading when changing page
+        setIsLoading(true);
         router.get(
             "/settings/role/role-management",
             { search: searchQuery, per_page: entriesPerPage, page },
             {
                 preserveState: true,
                 preserveScroll: true,
-                onFinish: () => setIsLoading(false), // Hide loading after fetch
+                onFinish: () => setIsLoading(false),
             }
         );
     };
@@ -176,14 +338,14 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
 
         setEntriesPerPage(newEntriesPerPage);
         setCurrentPage(newPage);
-        setIsLoading(true); // Show loading when changing entries per page
+        setIsLoading(true);
         router.get(
             "/settings/role/role-management",
             { search: searchQuery, per_page: newEntriesPerPage, page: newPage },
             {
                 preserveState: true,
                 preserveScroll: true,
-                onFinish: () => setIsLoading(false), // Hide loading after fetch
+                onFinish: () => setIsLoading(false),
             }
         );
     };
@@ -204,13 +366,75 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
             })
             .catch((error) => {
                 setIsFetchingRole(null);
-                // console.error('Error fetching role data:', error);
                 showErrorAlert({
                     title: t("error"),
                     message: t("failed_to_fetch_role"),
                     darkMode,
                 });
             });
+    };
+
+    // Handle delete
+
+    // Handle checkbox changes
+    const handlePermissionCheckboxChange = (checkPermissionId) => {
+        setFormData((prev) => {
+            const checkPermission = checkPermissions.find((cp) => cp.id === checkPermissionId);
+            let newCheckPermissionIds = [...prev.check_permission_ids];
+            let newPermissionIds = [...prev.permission_ids];
+            let newSubPermissionIds = [...prev.sub_permission_ids];
+
+            if (newCheckPermissionIds.includes(checkPermissionId)) {
+                newCheckPermissionIds = newCheckPermissionIds.filter((id) => id !== checkPermissionId);
+            } else {
+                newCheckPermissionIds.push(checkPermissionId);
+                // Add the associated permission_id if not already included
+                if (checkPermission.permission_id && !newPermissionIds.includes(checkPermission.permission_id)) {
+                    newPermissionIds.push(checkPermission.permission_id);
+                }
+                // Add the associated sub_permission_id if exists and not already included
+                if (checkPermission.sub_permission_id && !newSubPermissionIds.includes(checkPermission.sub_permission_id)) {
+                    newSubPermissionIds.push(checkPermission.sub_permission_id);
+                }
+            }
+
+            return {
+                ...prev,
+                permission_ids: newPermissionIds,
+                sub_permission_ids: newSubPermissionIds,
+                check_permission_ids: newCheckPermissionIds,
+            };
+        });
+    };
+
+    const handleSubPermissionCheckboxChange = (checkPermissionId) => {
+        setFormData((prev) => {
+            const checkPermission = checkPermissions.find((cp) => cp.id === checkPermissionId);
+            let newCheckPermissionIds = [...prev.check_permission_ids];
+            let newPermissionIds = [...prev.permission_ids];
+            let newSubPermissionIds = [...prev.sub_permission_ids];
+
+            if (newCheckPermissionIds.includes(checkPermissionId)) {
+                newCheckPermissionIds = newCheckPermissionIds.filter((id) => id !== checkPermissionId);
+            } else {
+                newCheckPermissionIds.push(checkPermissionId);
+                // Add the associated permission_id if not already included
+                if (checkPermission.permission_id && !newPermissionIds.includes(checkPermission.permission_id)) {
+                    newPermissionIds.push(checkPermission.permission_id);
+                }
+                // Add the associated sub_permission_id if not already included
+                if (checkPermission.sub_permission_id && !newSubPermissionIds.includes(checkPermission.sub_permission_id)) {
+                    newSubPermissionIds.push(checkPermission.sub_permission_id);
+                }
+            }
+
+            return {
+                ...prev,
+                permission_ids: newPermissionIds,
+                sub_permission_ids: newSubPermissionIds,
+                check_permission_ids: newCheckPermissionIds,
+            };
+        });
     };
 
     // Handle ESC and click outside
@@ -238,13 +462,9 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
         const handleCtrlEnter = (event) => {
             if (event.ctrlKey && event.key === "Enter" && isPopupOpen && !isSaving) {
                 event.preventDefault();
-                // console.log("Ctrl + Enter pressed, attempting to click submit button");
                 const submitButton = document.getElementById("submit-role-btn");
                 if (submitButton) {
-                    // console.log("Submit button found, triggering click");
                     submitButton.click();
-                } else {
-                    console.error("Submit button not found");
                 }
             }
         };
@@ -399,7 +619,6 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                 </td>
                                                 <td className="p-3">
                                                     {role.desc ? (
-
                                                         <Clipboard darkMode={darkMode} textToCopy={role.desc}>
                                                             <Bellypopover darkMode={darkMode}>
                                                                 <span
@@ -453,10 +672,15 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                                                     )} ${isFetchingRole === role.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                                 >
                                                                     {isFetchingRole === role.id ? (
-                                                                        <Spinner width="16px" height="16px" borderColor="#e5e7eb"  // ពណ៌ខៀវ
-                                                                                    borderBgColor="#ff8800" // ពណ៌ប្រផេះ
-                                                                                    borderWidth="3px"
-                                                                        duration="0.8s" className="mr-2" />
+                                                                        <Spinner
+                                                                            width="16px"
+                                                                            height="16px"
+                                                                            borderColor="#e5e7eb"
+                                                                            borderBgColor="#ff8800"
+                                                                            borderWidth="3px"
+                                                                            duration="0.8s"
+                                                                            className="mr-2"
+                                                                        />
                                                                     ) : (
                                                                         <svg
                                                                             className="w-4 h-4 mr-2 text-orange-400"
@@ -530,7 +754,7 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                     }`}
                 >
                     <div
-                        className={`rounded-xl shadow-2xl w-full max-w-[35rem] max-h-[90vh] flex flex-col transform transition-all duration-300 ease-in-out ${getDarkModeClass(
+                        className={`rounded-xl shadow-2xl w-full h-full flex flex-col transform transition-all duration-300 ease-in-out ${getDarkModeClass(
                             darkMode,
                             "bg-[#1A1A1A] text-gray-200",
                             "bg-white text-gray-900"
@@ -569,56 +793,172 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
                             <form id="add-role-form" onSubmit={handleSubmit} className="space-y-6">
-                                <div>
-                                    <label
-                                        className={`block text-sm font-medium mb-1 ${getDarkModeClass(
-                                            darkMode,
-                                            "text-gray-300",
-                                            "text-gray-700"
-                                        )}`}
-                                    >
-                                        {t("role_name")}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="rolename"
-                                        value={formData.rolename}
-                                        onChange={(e) => setFormData({ ...formData, rolename: e.target.value })}
-                                        className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
-                                            darkMode,
-                                            "bg-[#2D2D2D] text-gray-300 border-gray-700",
-                                            "bg-white text-gray-900 border-gray-200"
-                                        )}`}
-                                        placeholder={t("enter_role_name")}
-                                    />
+                                {/* Row 1: Rolename and Description */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                                darkMode,
+                                                "text-gray-300",
+                                                "text-gray-700"
+                                            )}`}
+                                        >
+                                            {t("role_name")}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="rolename"
+                                            value={formData.rolename}
+                                            onChange={(e) => setFormData({ ...formData, rolename: e.target.value })}
+                                            className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
+                                                darkMode,
+                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                "bg-white text-gray-900 border-gray-200"
+                                            )}`}
+                                            placeholder={t("enter_role_name")}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                                darkMode,
+                                                "text-gray-300",
+                                                "text-gray-700"
+                                            )}`}
+                                        >
+                                            {t("description")}
+                                        </label>
+                                        <textarea
+                                            name="desc"
+                                            value={formData.desc}
+                                            onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                                            className={`w-full h-24 border custom-scrollbar rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
+                                                darkMode,
+                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                "bg-white text-gray-900 border-gray-200"
+                                            )}`}
+                                            placeholder={t("enter_description")}
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label
-                                        className={`block text-sm font-medium mb-1 ${getDarkModeClass(
-                                            darkMode,
-                                            "text-gray-300",
-                                            "text-gray-700"
-                                        )}`}
-                                    >
-                                        {t("description")}
-                                    </label>
-                                    <textarea
-                                        name="desc"
-                                        value={formData.desc}
-                                        onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
-                                        className={`w-full h-[10rem] custom-scrollbar border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
-                                            darkMode,
-                                            "bg-[#2D2D2D] text-gray-300 border-gray-700",
-                                            "bg-white text-gray-900 border-gray-200"
-                                        )}`}
-                                        rows="4"
-                                        placeholder={t("enter_description")}
-                                    />
+
+                                {/* Row 2: Permission, Checkbox, Sub Permission, Checkbox */}
+                                <div className="grid grid-cols-4 gap-4">
+                                    {/* Permission Select */}
+                                    <div>
+                                        <label
+                                            className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                                darkMode,
+                                                "text-gray-300",
+                                                "text-gray-700"
+                                            )}`}
+                                        >
+                                            {t("permission")}
+                                        </label>
+                                        <select
+                                            size="12"
+                                            value={formData.permission_id || ""}
+                                            onChange={(e) => setFormData({ ...formData, permission_id: e.target.value })}
+                                            className={`w-full border rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 custom-scrollbar ${getDarkModeClass(
+                                                darkMode,
+                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                "bg-white text-gray-900 border-gray-200"
+                                            )}`}
+                                        >
+                                            <option value="">{t("select_permission")}</option>
+                                            {permissions.map((perm) => (
+                                                <option key={perm.id} value={perm.id}>
+                                                    {perm.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Permission Checkboxes */}
+                                    <div>
+                                        <div className="space-y-2 mt-4 p-2 h-[23.5rem] overflow-y-auto custom-scrollbar">
+                                            {filteredPermissionCheckboxes.length > 0 ? (
+                                                filteredPermissionCheckboxes.map((checkPerm) => (
+                                                    <div key={checkPerm.id} className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.check_permission_ids.includes(checkPerm.id)}
+                                                            onChange={() => handlePermissionCheckboxChange(checkPerm.id)}
+                                                            className={`custom-checkbox ${getDarkModeClass(
+                                                                darkMode,
+                                                                "custom-checkbox-border-darkmode",
+                                                                "custom-checkbox-border"
+                                                            )}`}
+                                                        />
+                                                        <span>{checkPerm.name}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                               ''
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Sub Permission Select */}
+                                    <div>
+                                        <label
+                                            className={`block text-sm font-medium mb-1 ${getDarkModeClass(
+                                                darkMode,
+                                                "text-gray-300",
+                                                "text-gray-700"
+                                            )}`}
+                                        >
+                                            {t("sub_permission")}
+                                        </label>
+                                        <select
+                                            size="12"
+                                            value={formData.sub_permission_id || ""}
+                                            onChange={(e) => setFormData({ ...formData, sub_permission_id: e.target.value })}
+                                            className={`w-full border rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 custom-scrollbar ${getDarkModeClass(
+                                                darkMode,
+                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                "bg-white text-gray-900 border-gray-200"
+                                            )}`}
+                                            disabled={!formData.permission_id}
+                                        >
+                                            <option value="">{t("select_sub_permission")}</option>
+                                            {filteredSubPermissions.map((subPerm) => (
+                                                <option key={subPerm.id} value={subPerm.id}>
+                                                    {subPerm.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Sub Permission Checkboxes */}
+                                    <div>
+                                        <div className="space-y-2 mt-4 h-[23.5rem] p-2 overflow-y-auto custom-scrollbar">
+                                            {filteredSubPermissionCheckboxes.length > 0 ? (
+                                                filteredSubPermissionCheckboxes.map((checkPerm) => (
+                                                    <div key={checkPerm.id} className="flex items-center space-x-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.check_permission_ids.includes(checkPerm.id)}
+                                                            onChange={() => handleSubPermissionCheckboxChange(checkPerm.id)}
+                                                            className={`custom-checkbox ${getDarkModeClass(
+                                                                darkMode,
+                                                                "custom-checkbox-border-darkmode",
+                                                                "custom-checkbox-border"
+                                                            )}`}
+                                                        />
+                                                        <span>{checkPerm.name}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                ''
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </form>
                         </div>
                         <div
-                            className={`rounded-b-xl p-8 pt-0 sticky bottom-0 z-10 ${getDarkModeClass(
+                            className={`rounded-b-xl p-2 pt-0 sticky bottom-0 z-10 ${getDarkModeClass(
                                 darkMode,
                                 "bg-[#1A1A1A]",
                                 "bg-white"
@@ -649,10 +989,15 @@ export default function RoleManager({ darkMode, roles, filters, flash }) {
                                     )} font-semibold py-2.5 px-6 rounded-lg transition duration-200 shadow-md ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {isSaving ? (
-                                        <Spinner width="18px" height="18px" borderColor="#e5e7eb"  // ពណ៌ខៀវ
-                                                borderBgColor="#ff8800" // ពណ៌ប្រផេះ
-                                                borderWidth="3px"
-                                            duration="0.8s" className="mr-2" />
+                                        <Spinner
+                                            width="18px"
+                                            height="18px"
+                                            borderColor="#e5e7eb"
+                                            borderBgColor="#ff8800"
+                                            borderWidth="3px"
+                                            duration="0.8s"
+                                            className="mr-2"
+                                        />
                                     ) : (
                                         t("save")
                                     )}

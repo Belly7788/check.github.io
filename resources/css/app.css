@@ -13,3 +13,51 @@ body {
     font-family: 'Inter', 'Noto Sans Khmer', 'Noto Sans SC', sans-serif;
 }
 
+.range-custom {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0; /* Track background */
+  border-radius: 3px;
+  outline: none;
+  margin: 10px 0;
+}
+
+/* Thumb (Handle) */
+.range-custom::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff8800; /* Orange thumb */
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.range-custom::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff8800; /* Orange thumb */
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Track Progress (Static fill - ពណ៌ខ្លីជាងព្រោះគ្មាន JS) */
+.range-custom::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #ff8800 0%, #ff8800 50%, #e0e0e0 50%); /* 50% orange by default */
+}
+
+.range-custom::-moz-range-track {
+  background: linear-gradient(to right, #ff8800 0%, #ff8800 50%, #e0e0e0 50%); /* 50% orange by default */
+}
+
+/* Hover Effects */
+.range-custom::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+.range-custom::-moz-range-thumb:hover {
+  transform: scale(1.1);
+}

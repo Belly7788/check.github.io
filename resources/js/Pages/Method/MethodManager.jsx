@@ -11,6 +11,7 @@ import Pagination from "../../Component/Pagination/Pagination";
 import Bellypopover from '../../BELLY/Component/Popover/Popover';
 import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
+import { checkPermission } from '../../utils/permissionUtils';
 
 export default function MethodManager({ darkMode, methods, filters, flash }) {
     const { t } = useTranslation();
@@ -75,61 +76,109 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
         setExpandedRow(expandedRow === index ? null : index);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-        const method = isEditMode ? "put" : "post";
-        const url = isEditMode ? `/settings/status/method/${editMethodId}` : "/settings/status/method";
+    const view_method = 49;
 
-        router[method](url, formData, {
-            onSuccess: () => {
-                setIsSaving(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: isEditMode ? t("method_updated_successfully") : t("method_created_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-            },
-            onError: (errors) => {
-                setIsSaving(false);
-                const errorMessage = errors.name_method ? t("method_name_taken") : Object.values(errors).join(", ") || t("failed_to_save");
+    useEffect(() => {
+        checkPermission(view_method, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
+    const create_method=46;
+    const update_method=47;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const permissionId = isEditMode ? update_method : create_method;
+
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
-            preserveScroll: true,
+                return;
+            }
+
+            setIsSaving(true);
+            const method = isEditMode ? "put" : "post";
+            const url = isEditMode ? `/settings/status/method/${editMethodId}` : "/settings/status/method";
+
+            router[method](url, formData, {
+                onSuccess: () => {
+                    setIsSaving(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: isEditMode ? t("method_t.method_updated_successfully") : t("method_t.method_created_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                },
+                onError: (errors) => {
+                    setIsSaving(false);
+                    const errorMessage = errors.name_method ? t("method_t.method_name_taken") : Object.values(errors).join(", ") || t("method_t.failed_to_save");
+                    showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+                preserveScroll: true,
+            });
         });
     };
 
+    const delete_method=48;
     const handleDelete = (methodId) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete"),
-            darkMode,
-            onConfirm: () => {
-                router.delete(`/settings/status/method/${methodId}`, {
-                    onSuccess: () => {
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("method_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                    },
-                    onError: () => {
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("failed_to_delete"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+        checkPermission(delete_method, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("method_t.confirm_delete"),
+                darkMode,
+                onConfirm: () => {
+                    router.delete(`/settings/status/method/${methodId}`, {
+                        onSuccess: () => {
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("method_t.method_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                        },
+                        onError: () => {
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("method_t.failed_to_delete"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
@@ -206,7 +255,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                 setIsFetchingMethod(null);
                 showErrorAlert({
                     title: t("error"),
-                    message: t("failed_to_fetch_method"),
+                    message: t("method_t.failed_to_fetch_method"),
                     darkMode,
                 });
             });
@@ -260,7 +309,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
 
     return (
         <>
-            <Head title={t("method_list")} />
+            <Head title={t("method_t.method_list")} />
 
             <div
                 className={`w-full rounded-lg shadow-md ${getDarkModeClass(
@@ -345,7 +394,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("method_name")}
+                                            {t("method_t.method_name")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -354,7 +403,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("number_date")}
+                                            {t("method_t.number_date")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -363,7 +412,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("note")}
+                                            {t("method_t.note")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -598,7 +647,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                         d="M12 4v16m8-8H4"
                                     />
                                 </svg>
-                                {isEditMode ? t("edit_method") : t("add_new_method")}
+                                {isEditMode ? t("method_t.edit_method") : t("method_t.add_new_method")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
@@ -611,7 +660,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("method_name")}
+                                        {t("method_t.method_name")}
                                     </label>
                                     <input
                                         type="text"
@@ -623,7 +672,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_method_name")}
+                                        placeholder={t("method_t.enter_method_name")}
                                     />
                                 </div>
                                 <div>
@@ -634,7 +683,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("number_date")}
+                                        {t("method_t.number_date")}
                                     </label>
                                     <input
                                         type="text"
@@ -646,7 +695,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_number_date")}
+                                        placeholder={t("method_t.enter_number_date")}
                                     />
                                 </div>
                                 <div>
@@ -657,7 +706,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("note")}
+                                        {t("method_t.note")}
                                     </label>
                                     <textarea
                                         name="note"
@@ -669,7 +718,7 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_note")}
+                                        placeholder={t("method_t.enter_note")}
                                     />
                                 </div>
                             </form>

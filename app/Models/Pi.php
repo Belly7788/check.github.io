@@ -13,29 +13,52 @@ class Pi extends Model
 
     protected $fillable = [
         'pi_number',
-        'date',
         'pi_name',
         'pi_name_cn',
-        'company_id',
+        'date',
         'discount',
+        'shipment_id',
+        'amout_ctn',
+        'reciept_number',
+        'tracking_number',
+        'note',
         'extra_charge',
+        'arrival_date',
+        'shipping_method',
+        'company_id',
         'openbalance',
         'user_id',
         'status',
     ];
 
+    protected $casts = [
+        'date' => 'date',
+        'arrival_date' => 'date',
+    ];
+
     public function company()
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    public function piDetails()
+    {
+        return $this->hasMany(PiDetail::class, 'pi_id');
+    }
+
+    public function referenceImages()
+    {
+        return $this->hasMany(ReferenceImage::class, 'pi_id');
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function details()
+    // Add the method relationship
+    public function method()
     {
-        return $this->hasMany(PiDetail::class, 'pi_id');
+        return $this->belongsTo(Method::class, 'shipping_method', 'id');
     }
 }

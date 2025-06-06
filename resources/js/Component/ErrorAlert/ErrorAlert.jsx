@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { getDarkModeClass } from "../../utils/darkModeUtils";
-import { FiAlertCircle } from "react-icons/fi"; // Icon from react-icons
-import { useTranslation } from "react-i18next"; // Import useTranslation
+import { FiAlertCircle } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
-function ErrorAlert({ isOpen, onClose, title, message, darkMode }) {
+function ErrorAlert({ isOpen, onClose, title, message, darkMode, buttons = [] }) {
     const [isClosing, setIsClosing] = useState(false);
-    const { t } = useTranslation(); // Initialize translation hook
+    const { t } = useTranslation();
 
-    // Inject CSS into the document head when the component mounts
     useEffect(() => {
         const style = document.createElement("style");
         style.textContent = `
@@ -28,20 +27,26 @@ function ErrorAlert({ isOpen, onClose, title, message, darkMode }) {
         `;
         document.head.appendChild(style);
 
-        // Cleanup: Remove the style tag when the component unmounts
         return () => {
             document.head.removeChild(style);
         };
-    }, []); // Empty dependency array ensures this runs only once on mount
+    }, []);
 
-    // Handle closing with animation
     const handleClose = () => {
         setIsClosing(true);
         setTimeout(() => {
             setIsClosing(false);
             onClose();
-        }, 300); // Match animation duration
+        }, 300);
     };
+
+    // Default button configuration
+    const defaultButton = {
+        onClick: handleClose, // Default behavior: just close the alert
+    };
+
+    // Use provided buttons or fall back to default button
+    const effectiveButtons = buttons.length > 0 ? buttons : [defaultButton];
 
     if (!isOpen) return null;
 
@@ -69,25 +74,30 @@ function ErrorAlert({ isOpen, onClose, title, message, darkMode }) {
                     <h3 className="text-lg font-semibold">{title}</h3>
                 </div>
                 <p className="mb-6 text-sm">{message}</p>
-                <div className="flex justify-end">
-                    <button
-                        onClick={handleClose}
-                        className={`px-4 py-2 rounded-md transition-colors duration-200 ${getDarkModeClass(
-                            darkMode,
-                            "bg-gray-600 hover:bg-gray-700 text-white",
-                            "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                        )}`}
-                    >
-                        {t("cancel")}
-                    </button>
+                <div className="flex justify-end space-x-2">
+                    {effectiveButtons.map((button, index) => (
+                        <button
+                            key={index}
+                            onClick={() => {
+                                button.onClick();
+                                handleClose(); // Close the alert after the custom onClick
+                            }}
+                            className={`px-4 py-2 rounded-md transition-colors duration-200 ${getDarkModeClass(
+                                darkMode,
+                                "bg-gray-600 hover:bg-gray-700 text-white",
+                                "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                            )}`}
+                        >
+                            {t("cancel")} {/* Static button name */}
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>
     );
 }
 
-// Helper function to easily trigger the error alert
-function showErrorAlert({ title, message, darkMode = false }) {
+function showErrorAlert({ title, message, darkMode = false, buttons = [] }) {
     return new Promise((resolve) => {
         const AlertWrapper = () => {
             const [isOpen, setIsOpen] = React.useState(true);
@@ -104,6 +114,7 @@ function showErrorAlert({ title, message, darkMode = false }) {
                     title={title}
                     message={message}
                     darkMode={darkMode}
+                    buttons={buttons}
                 />
             );
         };
@@ -114,7 +125,6 @@ function showErrorAlert({ title, message, darkMode = false }) {
         const root = createRoot(mountPoint);
         root.render(<AlertWrapper />);
 
-        // Cleanup function
         return () => {
             root.unmount();
             document.body.removeChild(mountPoint);

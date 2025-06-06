@@ -19,6 +19,7 @@ import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
 import ShimmerLoading from "../../Component/Loading/ShimmerLoading/ShimmerLoading";
 import NoImageComponent from "../../Component/Empty/NotImage/NotImage";
 import MuiStyleDatePicker from "../../BELLY/Component/DatePicker/DatePicker";
+import { checkPermission } from '../../utils/permissionUtils';
 
 export default function ListPO({ darkMode, purchaseOrders, filters }) {
     const { t } = useTranslation();
@@ -377,76 +378,120 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
         setFormData({ amount: '', remark: '', rating: 0 });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!formData.amount && !formData.remark && formData.rating === 0) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("list_pos.please_fill_at_least_one_field"),
-                darkMode,
-            });
-            return;
-        }
-        setIsSubmitting(true);
 
-        router.put(`/po/${currentPO.id}`, formData, {
-            onSuccess: () => {
-                setIsSubmitting(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: t("list_pos.po_updated_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-                setData((prev) =>
-                    prev.map((po) =>
-                        po.id === currentPO.id ? { ...po, ...formData } : po
-                    )
-                );
-            },
-            onError: (errors) => {
-                setIsSubmitting(false);
+    const view_po = 18;
+    useEffect(() => {
+        checkPermission(view_po, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: Object.values(errors).join(", ") || t("list_pos.failed_to_update"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
+
+    const update_po = 17;
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        checkPermission(update_po, async (hasPermission) => {
+            if (!hasPermission) {
+                await showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
-            preserveScroll: true,
+                return;
+            }
+            if (!formData.amount && !formData.remark && formData.rating === 0) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("list_pos.please_fill_at_least_one_field"),
+                    darkMode,
+                });
+                return;
+            }
+            setIsSubmitting(true);
+
+            router.put(`/po/${currentPO.id}`, formData, {
+                onSuccess: () => {
+                    setIsSubmitting(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: t("list_pos.po_updated_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                    setData((prev) =>
+                        prev.map((po) =>
+                            po.id === currentPO.id ? { ...po, ...formData } : po
+                        )
+                    );
+                },
+                onError: (errors) => {
+                    setIsSubmitting(false);
+                    showErrorAlert({
+                        title: t("error"),
+                        message: Object.values(errors).join(", ") || t("list_pos.failed_to_update"),
+                        darkMode,
+                    });
+                },
+                preserveScroll: true,
+            });
         });
     };
 
+    const delete_po = 19;
     const handleDelete = (id) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("list_pos.confirm_delete_po"),
-            darkMode,
-            isLoading: isDeleting === id,
-            onConfirm: () => {
-                setIsDeleting(id);
-                router.delete(`/po/${id}`, {
-                    onSuccess: () => {
-                        setIsDeleting(null);
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("list_pos.po_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                        setData((prev) => prev.filter((po) => po.id !== id));
-                    },
-                    onError: () => {
-                        setIsDeleting(null);
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("list_pos.failed_to_delete"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+        checkPermission(delete_po, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("list_pos.confirm_delete_po"),
+                darkMode,
+                isLoading: isDeleting === id,
+                onConfirm: () => {
+                    setIsDeleting(id);
+                    router.delete(`/po/${id}`, {
+                        onSuccess: () => {
+                            setIsDeleting(null);
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("list_pos.po_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                            setData((prev) => prev.filter((po) => po.id !== id));
+                        },
+                        onError: () => {
+                            setIsDeleting(null);
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("list_pos.failed_to_delete"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
@@ -586,34 +631,47 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
         }
     };
 
+    const check_po = 20;
     const toggleOrderCheckbox = (id, currentOrder) => {
-        setCheckboxLoading((prev) => ({ ...prev, [id]: true })); // Set loading for this PO
-        const newOrder = !currentOrder;
-
-        router.post(`/po/${id}/toggle-order`, { order: newOrder }, {
-            onSuccess: () => {
-                setData((prev) =>
-                    prev.map((po) =>
-                        po.id === id ? { ...po, order: newOrder } : po
-                    )
-                );
-                showSuccessAlert({
-                    title: t("success"),
-                    message: t("list_pos.order_updated_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-                setCheckboxLoading((prev) => ({ ...prev, [id]: false })); // Clear loading
-            },
-            onError: () => {
+        checkPermission(check_po, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: t("list_pos.failed_to_update_order"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-                setCheckboxLoading((prev) => ({ ...prev, [id]: false })); // Clear loading
-            },
-            preserveScroll: true,
+                return;
+            }
+
+            // Existing toggle order logic
+            setCheckboxLoading((prev) => ({ ...prev, [id]: true })); // Set loading for this PO
+            const newOrder = !currentOrder;
+
+            router.post(`/po/${id}/toggle-order`, { order: newOrder }, {
+                onSuccess: () => {
+                    setData((prev) =>
+                        prev.map((po) =>
+                            po.id === id ? { ...po, order: newOrder } : po
+                        )
+                    );
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: t("list_pos.order_updated_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                    setCheckboxLoading((prev) => ({ ...prev, [id]: false })); // Clear loading
+                },
+                onError: () => {
+                    showErrorAlert({
+                        title: t("error"),
+                        message: t("list_pos.failed_to_update_order"),
+                        darkMode,
+                    });
+                    setCheckboxLoading((prev) => ({ ...prev, [id]: false })); // Clear loading
+                },
+                preserveScroll: true,
+            });
         });
     };
 

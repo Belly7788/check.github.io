@@ -19,6 +19,26 @@ class PiDetail extends Model
         'note',
         'ctn',
         'status',
+        'shipping',
+        'shipping_fee',
+        'net_price',
+        'ctn_size_w',
+        'ctn_size_h',
+        'ctn_size_l',
+        'amount_ctn_by_product',
+        'price_cbm',
+        'truck_fee',
+        'extra_charge',
+        'arrived',
+        'delivery',
+        'cargo_date',
+        'note_receipt',
+        'receipt_picture',
+        'receipt_product',
+    ];
+
+    protected $casts = [
+        'cargo_date' => 'date:Y-m-d',
     ];
 
     public function product()

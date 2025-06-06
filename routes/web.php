@@ -3,11 +3,19 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\FetchPiController;
+use App\Http\Controllers\ListPiController;
 use App\Http\Controllers\ListPOController;
 use App\Http\Controllers\MethodController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PaymentManageController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PIController;
+use App\Http\Controllers\PiDetailController;
+use App\Http\Controllers\PiExcelController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\UserController;
@@ -19,13 +27,61 @@ Route::get('/', function () {
     return inertia('Home/Home');
 })->middleware('auth');
 
+Route::get('/product/product_cost', function () {
+    // sleep(1);
+    return inertia('Products/Product-costing');
+})->middleware('auth');
+
+
+// route payment
+Route::middleware('auth')->group(function () {
+    Route::get('/payment', [PaymentController::class, 'index'])->name('payment.index');
+    Route::get('/fetch-pi/{companyId}', [FetchPiController::class, 'index'])->name('fetch.pi');
+    Route::get('/check-payment-number/{number}', [FetchPiController::class, 'checkPaymentNumber'])->name('check.payment.number');
+    Route::post('/payment/create', [PaymentController::class, 'store'])->name('payment.create');
+    Route::get('/payment/fetch/payment/{id}', [PaymentController::class, 'fetchPayment'])->name('payment.fetch');
+    Route::post('/payment/update/{id}', [PaymentController::class, 'update'])->name('payment.update');
+    Route::post('/payment/approve/{id}', [PaymentController::class, 'approve'])->name('payment.approve'); // New route
+    Route::delete('/payment/delete/{id}', [PaymentController::class, 'destroy'])->name('payment.delete'); // New delete route
+});
+
+
+// profile route
+Route::middleware('auth')->group(function () {
+    // Existing routes...
+    Route::get('/settings/profile', [ProfileController::class, 'index'])->name('settings.profile');
+    Route::post('/settings/profile/image', [ProfileController::class, 'updateProfileImage'])->name('settings.profile.image');
+    Route::post('/settings/profile/cover', [ProfileController::class, 'updateCoverImage'])->name('settings.profile.cover');
+    Route::post('/settings/profile', [ProfileController::class, 'updateProfile'])->name('settings.profile.update');
+    Route::post('/settings/password', [ProfileController::class, 'updatePassword'])->name('settings.password.update');
+
+    // New route for username availability check
+    Route::get('/check-username/{username}', [ProfileController::class, 'checkUsername'])->name('check.username');
+});
+
+
+// login route
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth');
 
-Route::get('/pi/list', function(){
-    return inertia('PI/List-PI');
-})->middleware('auth');
+// route permission check
+Route::post('/check-permission', [PermissionController::class, 'checkPermission'])->middleware('auth');
+
+
+// route pi 
+Route::middleware('auth')->group(function () {
+    Route::get('/pi/list', [ListPiController::class, 'index'])->name('pi.list');
+    Route::get('/pi/{piId}/reference-photos', [ListPiController::class, 'getReferencePhotos'])->name('pi.reference-photos');
+    Route::get('/pi/{piId}/product-details', [ListPiController::class, 'getProductDetails'])->name('pi.product-details');
+    Route::delete('/pi/{piId}', [ListPiController::class, 'destroy'])->name('pi.destroy');
+    Route::post('/pi/{piId}/update', [ListPiController::class, 'update'])->name('pi.update');
+    Route::get('/pi/{piId}/edit-data', [ListPiController::class, 'getEditData'])->name('pi.edit-data');
+    Route::get('/pi/{piId}/download-excel', [PiExcelController::class, 'downloadExcel']);
+    Route::get('/api/pi-detail/{id}', [PiDetailController::class, 'show']);
+    Route::post('/api/pi-detail/update/{id}', [PiDetailController::class, 'update']);
+
+});
 
 Route::middleware('auth')->group(function () {
 

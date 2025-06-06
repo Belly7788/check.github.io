@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Redirect;
 
 class PIController extends Controller
 {
-    public function create(Request $request)
+public function create(Request $request)
     {
         // Extract id_pos from query string
         $idPos = [];
@@ -29,7 +29,7 @@ class PIController extends Controller
         }
         $idPos = array_filter($idPos); // Remove empty values
 
-        // Fetch products from tbpo_detail based on id_pos
+        // Fetch pre-selected products from tbpo_detail based on id_pos
         $preSelectedProducts = [];
         if (!empty($idPos)) {
             $poDetails = PoDetail::whereIn('id', $idPos)
@@ -62,10 +62,48 @@ class PIController extends Controller
             $preSelectedProducts = $groupedProducts;
         }
 
+        // Fetch PI data if id_pi is provided
+        $piData = null;
+        $piProducts = [];
+        if ($request->query('id_pi')) {
+            $pi = Pi::with(['company', 'piDetails.product'])
+                ->find($request->query('id_pi'));
+
+            if ($pi) {
+                $piData = [
+                    'company_id' => $pi->company_id,
+                    'company_name' => $pi->company ? $pi->company->company_name : null,
+                    'pi_name' => $pi->pi_name,
+                    'pi_name_cn' => $pi->pi_name_cn,
+                    'discount' => $pi->discount,
+                    'extra_charge' => $pi->extra_charge,
+                    'openbalance' => $pi->openbalance,
+                ];
+
+                $piProducts = $pi->piDetails->map(function ($detail) {
+                    return [
+                        'product_id' => $detail->product_id,
+                        'code' => $detail->product ? $detail->product->product_code : null,
+                        'namekh' => $detail->product ? $detail->product->name_kh : null,
+                        'nameen' => $detail->product ? $detail->product->name_en : null,
+                        'namecn' => $detail->product ? $detail->product->name_cn : null,
+                        'photo' => $detail->product && $detail->product->image ? asset('storage/' . $detail->product->image) : null,
+                        'ctn' => $detail->ctn,
+                        'amount' => $detail->amount,
+                        'unit_price' => $detail->unit_price,
+                        'subTotal' => $detail->amount * $detail->unit_price,
+                        'note' => $detail->note,
+                        'po_detail_ids' => [], // You can modify this if po_detail_ids are stored or linked
+                    ];
+                })->toArray();
+            }
+        }
+
         return Inertia::render('PI/Create-PI', [
             'darkMode' => true,
-            'preSelectedProducts' => $preSelectedProducts,
+            'preSelectedProducts' => $piData ? $piProducts : $preSelectedProducts,
             'idPos' => $idPos,
+            'piData' => $piData, // Pass PI data for editing
         ]);
     }
 

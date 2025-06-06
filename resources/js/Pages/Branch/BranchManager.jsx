@@ -11,6 +11,7 @@ import Pagination from "../../Component/Pagination/Pagination";
 import Bellypopover from '../../BELLY/Component/Popover/Popover';
 import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
+import { checkPermission } from '../../utils/permissionUtils';
 
 export default function BranchManager({ darkMode, branches, filters, flash }) {
     const { t } = useTranslation();
@@ -75,61 +76,109 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
         setExpandedRow(expandedRow === index ? null : index);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-        const method = isEditMode ? "put" : "post";
-        const url = isEditMode ? `/settings/status/branch/${editBranchId}` : "/settings/status/branch";
 
-        router[method](url, formData, {
-            onSuccess: () => {
-                setIsSaving(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: isEditMode ? t("branch_updated_successfully") : t("branch_created_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-            },
-            onError: (errors) => {
-                setIsSaving(false);
-                const errorMessage = errors.branch_name_en ? t("branch_name_en_taken") : Object.values(errors).join(", ") || t("failed_to_save");
+    const view_branch = 41;
+
+    useEffect(() => {
+        checkPermission(view_branch, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
+    const create_branch=38;
+    const update_branch=39;
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const permissionId = isEditMode ? update_branch : create_branch;
+
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
-            preserveScroll: true,
+                return;
+            }
+
+            setIsSaving(true);
+            const method = isEditMode ? "put" : "post";
+            const url = isEditMode ? `/settings/status/branch/${editBranchId}` : "/settings/status/branch";
+
+            router[method](url, formData, {
+                onSuccess: () => {
+                    setIsSaving(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: isEditMode ? t("branch_t.branch_updated_successfully") : t("branch_t.branch_created_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                },
+                onError: (errors) => {
+                    setIsSaving(false);
+                    const errorMessage = errors.branch_name_en ? t("branch_t.branch_name_en_taken") : Object.values(errors).join(", ") || t("branch_t.failed_to_save");
+                    showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+                preserveScroll: true,
+            });
         });
     };
 
+    const delete_branch=40;
     const handleDelete = (branchId) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete"),
-            darkMode,
-            onConfirm: () => {
-                router.delete(`/settings/status/branch/${branchId}`, {
-                    onSuccess: () => {
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("branch_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                    },
-                    onError: () => {
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("failed_to_delete"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+        checkPermission(delete_branch, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("branch_t.confirm_delete"),
+                darkMode,
+                onConfirm: () => {
+                    router.delete(`/settings/status/branch/${branchId}`, {
+                        onSuccess: () => {
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("branch_t.branch_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                        },
+                        onError: () => {
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("branch_t.failed_to_delete"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
@@ -206,7 +255,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
                 setIsFetchingBranch(null);
                 showErrorAlert({
                     title: t("error"),
-                    message: t("failed_to_fetch_branch"),
+                    message: t("branch_t.failed_to_fetch_branch"),
                     darkMode,
                 });
             });
@@ -252,7 +301,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
 
     return (
         <>
-            <Head title={t("branch_list")} />
+            <Head title={t("branch_t.branch_list")} />
 
             <div
                 className={`w-full rounded-lg shadow-md ${getDarkModeClass(
@@ -337,7 +386,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("branch_name_en")}
+                                            {t("branch_t.branch_name_en")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -346,7 +395,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("branch_name_kh")}
+                                            {t("branch_t.branch_name_kh")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -355,7 +404,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("remark")}
+                                            {t("branch_t.remark")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -592,7 +641,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
                                         d="M12 4v16m8-8H4"
                                     />
                                 </svg>
-                                {isEditMode ? t("edit_branch") : t("add_new_branch")}
+                                {isEditMode ? t("branch_t.edit_branch") : t("branch_t.add_new_branch")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
@@ -605,21 +654,19 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("branch_name_en")}
+                                        {t("branch_t.branch_name_en")}
                                     </label>
                                     <input
                                         type="text"
                                         name="branch_name_en"
                                         value={formData.branch_name_en}
-                                        onChange={(e) => setFormData({ ...
-
-formData, branch_name_en: e.target.value })}
+                                        onChange={(e) => setFormData({ ...formData, branch_name_en: e.target.value })}
                                         className={`w-full border rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                             darkMode,
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_branch_name_en")}
+                                        placeholder={t("branch_t.enter_branch_name_en")}
                                     />
                                 </div>
                                 <div>
@@ -630,7 +677,7 @@ formData, branch_name_en: e.target.value })}
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("branch_name_kh")}
+                                        {t("branch_t.branch_name_kh")}
                                     </label>
                                     <input
                                         type="text"
@@ -642,7 +689,7 @@ formData, branch_name_en: e.target.value })}
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_branch_name_kh")}
+                                        placeholder={t("branch_t.enter_branch_name_kh")}
                                     />
                                 </div>
                                 <div>
@@ -653,7 +700,7 @@ formData, branch_name_en: e.target.value })}
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("remark")}
+                                        {t("branch_t.remark")}
                                     </label>
                                     <textarea
                                         name="remark"
@@ -665,7 +712,7 @@ formData, branch_name_en: e.target.value })}
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_remark")}
+                                        placeholder={t("branch_t.enter_remark")}
                                     />
                                 </div>
                             </form>
@@ -726,4 +773,4 @@ formData, branch_name_en: e.target.value })}
 }
 
 BranchManager.title = "branch";
-BranchManager.subtitle = "branch_list";
+BranchManager.subtitle = "branch_t.branch_list";

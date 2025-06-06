@@ -3,6 +3,7 @@ import "./bootstrap";
 import "../css/app.css";
 import "../css/input/input.css";
 import "../css/label/label.css";
+import "../css/label/danger-panding-success.css";
 import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import { Layout } from "@/Layouts/Layout";

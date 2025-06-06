@@ -431,7 +431,7 @@ const MuiStyleDatePicker = ({ label, value, onChange, error, helperText, style, 
           ref={dropdownRef}
           className={getDarkModeClass(
             darkMode,
-            `absolute z-10 w-72 rounded-lg shadow-lg border overflow-hidden
+            `absolute z-50 w-72 rounded-lg shadow-lg border overflow-hidden
             ${dropdownPosition.horizontal === 'left' ? 'right-0' : 'left-0'}
             ${dropdownPosition.vertical === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}
             animate-zoom-in bg-gray-800 border-gray-700`,

@@ -11,6 +11,7 @@ import Pagination from "../../Component/Pagination/Pagination";
 import Bellypopover from '../../BELLY/Component/Popover/Popover';
 import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
+import { checkPermission } from '../../utils/permissionUtils';
 
 export default function ShipmentManager({ darkMode, shipments, filters, flash }) {
     const { t } = useTranslation();
@@ -75,61 +76,107 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
         setExpandedRow(expandedRow === index ? null : index);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-        const method = isEditMode ? "put" : "post";
-        const url = isEditMode ? `/settings/status/shipment/${editShipmentId}` : "/settings/status/shipment";
+    const view_shipment = 53;
 
-        router[method](url, formData, {
-            onSuccess: () => {
-                setIsSaving(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: isEditMode ? t("shipment_updated_successfully") : t("shipment_created_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-            },
-            onError: (errors) => {
-                setIsSaving(false);
-                const errorMessage = errors.shipment_name ? t("shipment_name_taken") : Object.values(errors).join(", ") || t("failed_to_save");
+    useEffect(() => {
+        checkPermission(view_shipment, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
+    const create_shipment=50;
+    const update_shipment=51;
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const permissionId = isEditMode ? update_shipment : create_shipment;
+
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
-            preserveScroll: true,
+                return;
+            }
+            setIsSaving(true);
+            const method = isEditMode ? "put" : "post";
+            const url = isEditMode ? `/settings/status/shipment/${editShipmentId}` : "/settings/status/shipment";
+
+            router[method](url, formData, {
+                onSuccess: () => {
+                    setIsSaving(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: isEditMode ? t("shipment_t.shipment_updated_successfully") : t("shipment_t.shipment_created_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                },
+                onError: (errors) => {
+                    setIsSaving(false);
+                    const errorMessage = errors.shipment_name ? t("shipment_t.shipment_name_taken") : Object.values(errors).join(", ") || t("shipment_t.failed_to_save");
+                    showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+                preserveScroll: true,
+            });
         });
     };
 
+    const delete_shipment=52;
     const handleDelete = (shipmentId) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete"),
-            darkMode,
-            onConfirm: () => {
-                router.delete(`/settings/status/shipment/${shipmentId}`, {
-                    onSuccess: () => {
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("shipment_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                    },
-                    onError: () => {
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("failed_to_delete"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+        checkPermission(delete_shipment, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("shipment_t.confirm_delete"),
+                darkMode,
+                onConfirm: () => {
+                    router.delete(`/settings/status/shipment/${shipmentId}`, {
+                        onSuccess: () => {
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("shipment_t.shipment_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                        },
+                        onError: () => {
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("shipment_t.failed_to_delete"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
@@ -206,7 +253,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                 setIsFetchingShipment(null);
                 showErrorAlert({
                     title: t("error"),
-                    message: t("failed_to_fetch_shipment"),
+                    message: t("shipment_t.failed_to_fetch_shipment"),
                     darkMode,
                 });
             });
@@ -252,7 +299,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
 
     return (
         <>
-            <Head title={t("shipment_list")} />
+            <Head title={t("shipment_t.shipment_list")} />
 
             <div
                 className={`w-full rounded-lg shadow-md ${getDarkModeClass(
@@ -337,7 +384,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("shipment_name")}
+                                            {t("shipment_t.shipment_name")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -346,7 +393,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("address")}
+                                            {t("shipment_t.address")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -355,7 +402,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                                 "bg-[#ff8800] text-white"
                                             )}`}
                                         >
-                                            {t("note")}
+                                            {t("shipment_t.note")}
                                         </th>
                                         <th
                                             className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
@@ -596,7 +643,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                         d="M12 4v16m8-8H4"
                                     />
                                 </svg>
-                                {isEditMode ? t("edit_shipment") : t("add_new_shipment")}
+                                {isEditMode ? t("shipment_t.edit_shipment") : t("shipment_t.add_new_shipment")}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
@@ -609,7 +656,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("shipment_name")}
+                                        {t("shipment_t.shipment_name")}
                                     </label>
                                     <input
                                         type="text"
@@ -621,7 +668,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                             "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
-                                        placeholder={t("enter_shipment_name")}
+                                        placeholder={t("shipment_t.enter_shipment_name")}
                                     />
                                 </div>
                                 <div>
@@ -632,7 +679,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("address")}
+                                        {t("shipment_t.address")}
                                     </label>
                                     <textarea
                                         name="address"
@@ -644,7 +691,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_address")}
+                                        placeholder={t("shipment_t.enter_address")}
                                     />
                                 </div>
                                 <div>
@@ -655,7 +702,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                             "text-gray-700"
                                         )}`}
                                     >
-                                        {t("note")}
+                                        {t("shipment_t.note")}
                                     </label>
                                     <textarea
                                         name="note"
@@ -667,7 +714,7 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
                                             "bg-white text-gray-900 border-gray-200"
                                         )}`}
                                         rows="4"
-                                        placeholder={t("enter_note")}
+                                        placeholder={t("shipment_t.enter_note")}
                                     />
                                 </div>
                             </form>
@@ -728,4 +775,4 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
 }
 
 ShipmentManager.title = "shipment";
-ShipmentManager.subtitle = "shipment_list";
+ShipmentManager.subtitle = "shipment_t.shipment_list";

@@ -1,5 +1,5 @@
 // resources/js/Pages/PI/Create-PI.jsx
-import { Link, Head, useForm, router } from "@inertiajs/react"; // Added router import
+import { Link, Head, useForm, router } from "@inertiajs/react";
 import { useEffect, useState, useRef } from "react";
 import { FaEllipsisV, FaGripVertical } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
@@ -15,9 +15,10 @@ import ShimmerLoading from "../../Component/Loading/ShimmerLoading/ShimmerLoadin
 import { showErrorAlert } from "../../Component/ErrorAlert/ErrorAlert";
 import { showSuccessAlert } from "../../Component/SuccessAlert/SuccessAlert";
 import Spinner from "../../Component/spinner/spinner";
+import { checkPermission } from '../../utils/permissionUtils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts = [], idPos = [] }) {
+export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts = [], idPos = [], piData = null }) {
     const { t } = useTranslation();
     const [productSearch, setProductSearch] = useState("");
     const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
@@ -41,7 +42,7 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
     const [currentRowIndex, setCurrentRowIndex] = useState(null);
     const [animationState, setAnimationState] = useState("closed");
     const [textareaPosition, setTextareaPosition] = useState({ x: 0, y: 0 });
-    const [isLoadingCompanies, setIsLoadingCompanies] = useState(false); // New state for company loading
+    const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const textareaRefs = useRef([]);
     const [imageLoadingStates, setImageLoadingStates] = useState({});
 
@@ -49,15 +50,26 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
     const { data, setData, post, processing, errors, reset } = useForm({
         pi_number: "",
         date: today,
-        pi_name: "",
-        pi_name_cn: "",
-        company_id: "",
-        discount: 0,
-        extra_charge: 0,
-        openbalance: 0,
+        pi_name: piData?.pi_name || "",
+        pi_name_cn: piData?.pi_name_cn || "",
+        company_id: piData?.company_id || "",
+        discount: piData?.discount || 0,
+        extra_charge: piData?.extra_charge || 0,
+        openbalance: piData?.openbalance || 0,
         products: preSelectedProducts,
         id_pos: idPos,
     });
+
+    // Initialize company search and selected company if piData exists
+    useEffect(() => {
+        if (piData && piData.company_id && piData.company_name) {
+            setSelectedCompany({
+                id: piData.company_id,
+                name: piData.company_name,
+            });
+            setCompanySearch(piData.company_name);
+        }
+    }, [piData]);
 
     // Custom style for date picker
     const customStyle = {
@@ -197,7 +209,7 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
     // Fetch companies when dropdown is opened
     useEffect(() => {
         if (isCompanyDropdownOpen) {
-            setIsLoadingCompanies(true); // Set loading to true
+            setIsLoadingCompanies(true);
             axios.get('/companies/search')
                 .then((response) => {
                     setCompanies(response.data);
@@ -208,7 +220,7 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                     setFilteredCompanies([]);
                 })
                 .finally(() => {
-                    setIsLoadingCompanies(false); // Set loading to false
+                    setIsLoadingCompanies(false);
                 });
         }
     }, [isCompanyDropdownOpen]);
@@ -286,11 +298,10 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
         }));
     }, [data.products, data.discount, data.extra_charge]);
 
-    // Initialize products with pre-selected products
+    // Initialize products with pre-selected products or PI products
     useEffect(() => {
         if (preSelectedProducts.length > 0) {
             setData('products', preSelectedProducts);
-            // Preload images for pre-selected products
             const newImageLoadingStates = {};
             preSelectedProducts.forEach(product => {
                 if (product.photo && product.product_id) {
@@ -450,77 +461,90 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
         }, 300);
     };
 
+
+    const create_pi = 21;
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (piNumberError) {
-            await showErrorAlert({
-                title: t("error"),
-                message: piNumberError,
-                darkMode,
-            });
-            return;
-        }
-
-        if (!isNumeric(data.discount) || !isNumeric(data.extra_charge)) {
-            await showErrorAlert({
-                title: t("error"),
-                message: t("create_invoice.discount_or_extra_charge_invalid"),
-                darkMode,
-            });
-            return;
-        }
-
-        post('/pi/store', {
-            onSuccess: async () => {
-                await showSuccessAlert({
-                    title: t("success"),
-                    message: t("create_invoice.pi_created_successfully"),
-                    darkMode,
-                });
-                // Reset form and state
-                reset();
-                setData({
-                    pi_number: "",
-                    date: today,
-                    pi_name: "",
-                    pi_name_cn: "",
-                    company_id: "",
-                    discount: 0,
-                    extra_charge: 0,
-                    openbalance: 0,
-                    products: [],
-                    id_pos: [],
-                });
-                setPiNumber("");
-                setSelectedCompany(null);
-                setCompanySearch("");
-                setProductSearch("");
-                setProducts([]);
-                setIsProductDropdownOpen(false);
-                // Clear route query parameters
-                router.visit('/pi/create', { replace: true });
-            },
-            onError: async (errors) => {
-                let errorMessage = t("create_invoice.error_creating_pi");
-                if (errors.pi_number) {
-                    errorMessage = t("create_invoice.pi_number_exists");
-                } else if (errors.company_id) {
-                    errorMessage = t("create_invoice.company_required");
-                } else if (errors.products) {
-                    errorMessage = t("create_invoice.products_required");
-                } else if (errors.id_pos) {
-                    errorMessage = t("create_invoice.invalid_id_pos");
-                } else {
-                    errorMessage = Object.values(errors).join(", ");
-                }
+        checkPermission(create_pi, async (hasPermission) => {
+            if (!hasPermission) {
                 await showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
+                return;
+            }
+
+            if (piNumberError) {
+                await showErrorAlert({
+                    title: t("error"),
+                    message: piNumberError,
+                    darkMode,
+                });
+                return;
+            }
+
+            if (!isNumeric(data.discount) || !isNumeric(data.extra_charge)) {
+                await showErrorAlert({
+                    title: t("error"),
+                    message: t("create_invoice.discount_or_extra_charge_invalid"),
+                    darkMode,
+                });
+                return;
+            }
+
+            post('/pi/store', {
+                onSuccess: async () => {
+                    await showSuccessAlert({
+                        title: t("success"),
+                        message: t("create_invoice.pi_created_successfully"),
+                        darkMode,
+                    });
+                    // Reset form and state
+                    reset();
+                    setData({
+                        pi_number: "",
+                        date: today,
+                        pi_name: "",
+                        pi_name_cn: "",
+                        company_id: "",
+                        discount: 0,
+                        extra_charge: 0,
+                        openbalance: 0,
+                        products: [],
+                        id_pos: [],
+                    });
+                    setPiNumber("");
+                    setSelectedCompany(null);
+                    setCompanySearch("");
+                    setProductSearch("");
+                    setProducts([]);
+                    setIsProductDropdownOpen(false);
+                    // Clear route query parameters
+                    router.visit('/pi/create', { replace: true });
+                },
+                onError: async (errors) => {
+                    let errorMessage = t("create_invoice.error_creating_pi");
+                    if (errors.pi_number) {
+                        errorMessage = t("create_invoice.pi_number_exists");
+                    } else if (errors.company_id) {
+                        errorMessage = t("create_invoice.company_required");
+                    } else if (errors.products) {
+                        errorMessage = t("create_invoice.products_required");
+                    } else if (errors.id_pos) {
+                        errorMessage = t("create_invoice.invalid_id_pos");
+                    } else {
+                        errorMessage = Object.values(errors).join(", ");
+                    }
+                    await showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+            });
         });
     };
 
@@ -794,11 +818,11 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                 )}`}
                                             ></th>
                                             <th
-                                                className={`pl-1 py-3 w-10 text-left ${getDarkModeClass(
-                                                    darkMode,
-                                                    "text-gray-200",
-                                                    "text-white"
-                                                )}`}
+                                            className={`pl-1 py-3 w-10 text-left ${getDarkModeClass(
+                                                darkMode,
+                                                "text-gray-200",
+                                                "text-white"
+                                            )}`}
                                             >
                                                 {t("no")}
                                             </th>

@@ -22,12 +22,13 @@ import NoDataComponent from "../../Component/Empty/NoDataComponent";
 import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
 import ShimmerLoading from "../../Component/Loading/ShimmerLoading/ShimmerLoading";
 import NoImageComponent from "../../Component/Empty/NotImage/NotImage";
+import { checkPermission } from '../../utils/permissionUtils';
 import axios from 'axios';
 
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Import autoTable explicitly
+import autoTable from 'jspdf-autotable';
 
 export default function ProductList({ darkMode, products, pagination }) {
     const { t } = useTranslation();
@@ -365,88 +366,173 @@ export default function ProductList({ darkMode, products, pagination }) {
         setCurrentVideoIndex(0);
     };
 
+    const create_product = 10;
+    const update_product = 11;
+    const view_product = 12;
+
+    // no view list-product page
+    useEffect(() => {
+        checkPermission(view_product, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                    buttons: [
+                        {
+                            onClick: () => {
+                                router.visit('/');
+                            },
+                        },
+                    ],
+                });
+            }
+        });
+    }, []);
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const textFields = [
-            formData.product_code,
-            formData.name_kh,
-            formData.name_en,
-            formData.name_cn,
-            formData.declare,
-            formData.HS_code,
-        ].filter(field => field && field.trim() !== '');
+        // Determine which permission to check based on isEditMode
+        const permissionId = isEditMode ? update_product : create_product;
 
-        if (textFields.length === 0) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("please_enter_at_least_one_field"),
-                darkMode,
-            });
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        const form = new FormData();
-        form.append('product_code', formData.product_code || '');
-        form.append('name_kh', formData.name_kh || '');
-        form.append('name_en', formData.name_en || '');
-        form.append('name_cn', formData.name_cn || '');
-        form.append('declare', formData.declare || '');
-        form.append('HS_code', formData.HS_code || '');
-
-        if (defaultImage && defaultImage.startsWith('data:')) {
-            const file = dataURLtoFile(defaultImage, 'default_image.png');
-            form.append('default_image', file);
-        } else if (defaultImage && isEditMode) {
-            form.append('existing_default_image', defaultImage.replace('/storage/', ''));
-        }
-
-        thumbnails.forEach((thumbnail, index) => {
-            if (thumbnail.file) {
-                form.append(`thumbnails[${index}]`, thumbnail.file);
-            } else if (thumbnail.preview && isEditMode) {
-                form.append(`existing_thumbnails[${index}]`, thumbnail.preview.replace('/storage/', ''));
-            }
-        });
-
-        videos.forEach((video, index) => {
-            if (video.file) {
-                form.append(`videos[${index}]`, video.file);
-            } else if (video.videoUrl && isEditMode) {
-                form.append(`existing_videos[${index}]`, video.videoUrl.replace('/storage/', ''));
-            }
-        });
-
-        const method = isEditMode ? 'post' : 'post';
-        const url = isEditMode ? `/product/${currentProduct.id}` : '/product';
-
-        if (isEditMode) {
-            form.append('_method', 'PUT');
-        }
-
-        router.post(url, form, {
-            forceFormData: true,
-            onSuccess: () => {
-                setIsSubmitting(false);
-                closePopup();
-                showSuccessAlert({
-                    title: t("success"),
-                    message: isEditMode ? t("product_updated_successfully") : t("product_created_successfully"),
-                    darkMode,
-                    timeout: 3000,
-                });
-            },
-            onError: (errors) => {
-                setIsSubmitting(false);
-                const errorMessage = t("the_product_code_has_already_been_taken");
+        // Check permission before proceeding
+        checkPermission(permissionId, (hasPermission) => {
+            if (!hasPermission) {
                 showErrorAlert({
                     title: t("error"),
-                    message: errorMessage,
+                    message: t("you_do_not_have_permission"),
                     darkMode,
                 });
-            },
+                return;
+            }
+
+            // Validate form fields
+            const textFields = [
+                formData.product_code,
+                formData.name_kh,
+                formData.name_en,
+                formData.name_cn,
+                formData.declare,
+                formData.HS_code,
+            ].filter(field => field && field.trim() !== '');
+
+            if (textFields.length === 0) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("please_enter_at_least_one_field"),
+                    darkMode,
+                });
+                return;
+            }
+
+            setIsSubmitting(true);
+
+            const form = new FormData();
+            form.append('product_code', formData.product_code || '');
+            form.append('name_kh', formData.name_kh || '');
+            form.append('name_en', formData.name_en || '');
+            form.append('name_cn', formData.name_cn || '');
+            form.append('declare', formData.declare || '');
+            form.append('HS_code', formData.HS_code || '');
+
+            if (defaultImage && defaultImage.startsWith('data:')) {
+                const file = dataURLtoFile(defaultImage, 'default_image.png');
+                form.append('default_image', file);
+            } else if (defaultImage && isEditMode) {
+                form.append('existing_default_image', defaultImage.replace('/storage/', ''));
+            }
+
+            thumbnails.forEach((thumbnail, index) => {
+                if (thumbnail.file) {
+                    form.append(`thumbnails[${index}]`, thumbnail.file);
+                } else if (thumbnail.preview && isEditMode) {
+                    form.append(`existing_thumbnails[${index}]`, thumbnail.preview.replace('/storage/', ''));
+                }
+            });
+
+            videos.forEach((video, index) => {
+                if (video.file) {
+                    form.append(`videos[${index}]`, video.file);
+                } else if (video.videoUrl && isEditMode) {
+                    form.append(`existing_videos[${index}]`, video.videoUrl.replace('/storage/', ''));
+                }
+            });
+
+            const method = isEditMode ? 'post' : 'post';
+            const url = isEditMode ? `/product/${currentProduct.id}` : '/product';
+
+            if (isEditMode) {
+                form.append('_method', 'PUT');
+            }
+
+            router.post(url, form, {
+                forceFormData: true,
+                onSuccess: () => {
+                    setIsSubmitting(false);
+                    closePopup();
+                    showSuccessAlert({
+                        title: t("success"),
+                        message: isEditMode ? t("product_updated_successfully") : t("product_created_successfully"),
+                        darkMode,
+                        timeout: 3000,
+                    });
+                },
+                onError: (errors) => {
+                    setIsSubmitting(false);
+                    const errorMessage = t("the_product_code_has_already_been_taken");
+                    showErrorAlert({
+                        title: t("error"),
+                        message: errorMessage,
+                        darkMode,
+                    });
+                },
+            });
+        });
+    };
+
+    const delete_product = 13;
+    const handleDelete = (id) => {
+        // Check delete permission before showing confirmation
+        checkPermission(delete_product, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                });
+                return;
+            }
+
+            showConfirmAlert({
+                title: t("confirm_delete_title"),
+                message: t("confirm_delete_product"),
+                darkMode,
+                isLoading: isDeleting === id,
+                onConfirm: () => {
+                    setIsDeleting(id);
+                    router.delete(`/product/${id}`, {
+                        onSuccess: () => {
+                            setIsDeleting(null);
+                            showSuccessAlert({
+                                title: t("success"),
+                                message: t("product_deleted_successfully"),
+                                darkMode,
+                                timeout: 3000,
+                            });
+                        },
+                        onError: () => {
+                            setIsDeleting(null);
+                            showErrorAlert({
+                                title: t("error"),
+                                message: t("failed_to_delete_product"),
+                                darkMode,
+                            });
+                        },
+                        preserveScroll: true,
+                    });
+                },
+            });
         });
     };
 
@@ -599,324 +685,297 @@ export default function ProductList({ darkMode, products, pagination }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleDelete = (id) => {
-        showConfirmAlert({
-            title: t("confirm_delete_title"),
-            message: t("confirm_delete_product"),
-            darkMode,
-            isLoading: isDeleting === id,
-            onConfirm: () => {
-                setIsDeleting(id);
-                router.delete(`/product/${id}`, {
-                    onSuccess: () => {
-                        setIsDeleting(null);
-                        showSuccessAlert({
-                            title: t("success"),
-                            message: t("product_deleted_successfully"),
-                            darkMode,
-                            timeout: 3000,
-                        });
-                    },
-                    onError: () => {
-                        setIsDeleting(null);
-                        showErrorAlert({
-                            title: t("error"),
-                            message: t("failed_to_delete_product"),
-                            darkMode,
-                        });
-                    },
-                    preserveScroll: true,
+
+    const excel = 14;
+    const pdf = 15;
+
+    const handleDownloadExcel = () => {
+        checkPermission(excel, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            },
+                return;
+            }
+
+            // Existing Excel download logic
+            (async () => {
+                try {
+                    setExcelProgress(10); // Start progress
+                    const progressInterval = setInterval(() => {
+                        setExcelProgress((prev) => {
+                            if (prev >= 90) {
+                                return prev;
+                            }
+                            return prev + 10;
+                        });
+                    }, 500);
+
+                    const response = await axios.get('/products/all');
+                    const allProducts = response.data;
+
+                    setExcelProgress(30);
+
+                    const data = allProducts.map((product, index) => ({
+                        No: index + 1,
+                        'CODE-PRODUCT': product.product_code || '',
+                        'NAME-KH': product.name_kh || '',
+                        'NAME-EN': product.name_en || '',
+                        'NAME-CN': product.name_cn || '',
+                        'HS-CODE': product.HS_code || '',
+                    }));
+
+                    setExcelProgress(50);
+
+                    const workbook = new ExcelJS.Workbook();
+                    const worksheet = workbook.addWorksheet('Products');
+
+                    worksheet.columns = [
+                        { width: 6 },
+                        { width: 18 },
+                        { width: 25 },
+                        { width: 25 },
+                        { width: 25 },
+                        { width: 18 },
+                    ];
+
+                    worksheet.mergeCells('A1:F1');
+                    const titleCell = worksheet.getCell('A1');
+                    titleCell.value = 'Product List';
+                    titleCell.font = { bold: true, size: 16, name: 'Calibri', color: { argb: 'FF8800' } };
+                    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E6F0FA' } };
+                    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    worksheet.getRow(1).height = 50;
+
+                    for (let col = 1; col <= 6; col++) {
+                        const cell = worksheet.getCell(1, col);
+                        cell.border = {
+                            top: { style: 'thin', color: { argb: '000000' } },
+                            bottom: { style: 'thin', color: { argb: '000000' } },
+                            left: { style: 'thin', color: { argb: '000000' } },
+                            right: { style: 'thin', color: { argb: '000000' } },
+                        };
+                    }
+
+                    worksheet.addRow(['No', 'CODE-PRODUCT', 'NAME-KH', 'NAME-EN', 'NAME-CN', 'HS-CODE']);
+                    const headerRow = worksheet.getRow(2);
+                    headerRow.font = { bold: true, size: 12, name: 'Calibri', color: { argb: 'FFFFFF' } };
+                    headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                    headerRow.height = 50;
+
+                    for (let col = 1; col <= 6; col++) {
+                        const cell = headerRow.getCell(col);
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8800' } };
+                        cell.border = {
+                            top: { style: 'thin', color: { argb: '000000' } },
+                            bottom: { style: 'thin', color: { argb: '000000' } },
+                            left: { style: 'thin', color: { argb: '000000' } },
+                            right: { style: 'thin', color: { argb: '000000' } },
+                        };
+                    }
+
+                    data.forEach((item, index) => {
+                        const row = worksheet.addRow([
+                            item.No,
+                            item['CODE-PRODUCT'],
+                            item['NAME-KH'],
+                            item['NAME-EN'],
+                            item['NAME-CN'],
+                            item['HS-CODE'],
+                        ]);
+                        row.font = { size: 11, name: 'Calibri', color: { argb: '000000' } };
+                        row.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+                        row.height = 50;
+
+                        for (let col = 1; col <= 6; col++) {
+                            const cell = row.getCell(col);
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: index % 2 === 0 ? 'F5F7FA' : 'FFFFFF' },
+                            };
+                            cell.border = {
+                                top: { style: 'thin', color: { argb: '000000' } },
+                                bottom: { style: 'thin', color: { argb: '000000' } },
+                                left: { style: 'thin', color: { argb: '000000' } },
+                                right: { style: 'thin', color: { argb: '000000' } },
+                            };
+                        }
+                    });
+
+                    setExcelProgress(80);
+
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const seconds = String(now.getSeconds()).padStart(2, '0');
+                    const dateTime = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+                    const fileName = `Product_List_${dateTime}.xlsx`;
+
+                    const buffer = await workbook.xlsx.writeBuffer();
+                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    saveAs(blob, fileName);
+
+                    setExcelProgress(100);
+                    clearInterval(progressInterval);
+
+                    showSuccessAlert({
+                        title: t('success'),
+                        message: t('excel_downloaded_successfully'),
+                        darkMode,
+                        timeout: 3000,
+                    });
+
+                    setTimeout(() => setExcelProgress(0), 1000);
+                } catch (error) {
+                    console.error('Error downloading Excel:', error);
+                    setExcelProgress(0);
+                    clearInterval(progressInterval);
+                    showErrorAlert({
+                        title: t('error'),
+                        message: t('failed_to_download_excel'),
+                        darkMode,
+                    });
+                }
+            })();
         });
     };
 
-    const handleDownloadExcel = async () => {
-        try {
-            setExcelProgress(10); // Start progress
-            // Simulate progress updates
-            const progressInterval = setInterval(() => {
-                setExcelProgress((prev) => {
-                    if (prev >= 90) {
-                        return prev;
-                    }
-                    return prev + 10;
+    const handleDownloadPDF = () => {
+        checkPermission(pdf, (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
                 });
-            }, 500);
-
-            // Fetch all products from the backend
-            const response = await axios.get('/products/all');
-            const allProducts = response.data;
-
-            setExcelProgress(30); // Update progress after fetch
-
-            // Prepare data for Excel
-            const data = allProducts.map((product, index) => ({
-                No: index + 1,
-                'CODE-PRODUCT': product.product_code || '',
-                'NAME-KH': product.name_kh || '',
-                'NAME-EN': product.name_en || '',
-                'NAME-CN': product.name_cn || '',
-                'HS-CODE': product.HS_code || '',
-            }));
-
-            setExcelProgress(50); // Update progress after data prep
-
-            // Create workbook and worksheet
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Products');
-
-            // Set column widths for A to F
-            worksheet.columns = [
-                { width: 6 },    // A
-                { width: 18 },   // B
-                { width: 25 },   // C
-                { width: 25 },   // D
-                { width: 25 },   // E
-                { width: 18 },   // F
-            ];
-
-            // Add title
-            worksheet.mergeCells('A1:F1');
-            const titleCell = worksheet.getCell('A1');
-            titleCell.value = 'Product List';
-            titleCell.font = { bold: true, size: 16, name: 'Calibri', color: { argb: 'FF8800' } };
-            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E6F0FA' } };
-            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-            worksheet.getRow(1).height = 50;
-
-            // Add borders to title row (A1:F1)
-            for (let col = 1; col <= 6; col++) {
-                const cell = worksheet.getCell(1, col);
-                cell.border = {
-                    top: { style: 'thin', color: { argb: '000000' } },
-                    bottom: { style: 'thin', color: { argb: '000000' } },
-                    left: { style: 'thin', color: { argb: '000000' } },
-                    right: { style: 'thin', color: { argb: '000000' } },
-                };
+                return;
             }
 
-            // Add headers
-            worksheet.addRow(['No', 'CODE-PRODUCT', 'NAME-KH', 'NAME-EN', 'NAME-CN', 'HS-CODE']);
-            const headerRow = worksheet.getRow(2);
-            headerRow.font = { bold: true, size: 12, name: 'Calibri', color: { argb: 'FFFFFF' } };
-            headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-            headerRow.height = 50;
+            // Existing PDF download logic
+            (async () => {
+                try {
+                    setPdfProgress(10);
+                    const progressInterval = setInterval(() => {
+                        setPdfProgress((prev) => {
+                            if (prev >= 90) {
+                                return prev;
+                            }
+                            return prev + 10;
+                        });
+                    }, 500);
 
-            // Apply background color and borders to columns A to F in header row
-            for (let col = 1; col <= 6; col++) {
-                const cell = headerRow.getCell(col);
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8800' } };
-                cell.border = {
-                    top: { style: 'thin', color: { argb: '000000' } },
-                    bottom: { style: 'thin', color: { argb: '000000' } },
-                    left: { style: 'thin', color: { argb: '000000' } },
-                    right: { style: 'thin', color: { argb: '000000' } },
-                };
-            }
+                    const response = await axios.get('/products/all');
+                    const allProducts = response.data;
 
-            // Add data with alternating row colors and centered text
-            data.forEach((item, index) => {
-                const row = worksheet.addRow([
-                    item.No,
-                    item['CODE-PRODUCT'],
-                    item['NAME-KH'],
-                    item['NAME-EN'],
-                    item['NAME-CN'],
-                    item['HS-CODE'],
-                ]);
-                row.font = { size: 11, name: 'Calibri', color: { argb: '000000' } };
-                row.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-                row.height = 50;
+                    setPdfProgress(30);
 
-                // Apply fill and borders to columns A to F
-                for (let col = 1; col <= 6; col++) {
-                    const cell = row.getCell(col);
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: index % 2 === 0 ? 'F5F7FA' : 'FFFFFF' },
-                    };
-                    cell.border = {
-                        top: { style: 'thin', color: { argb: '000000' } },
-                        bottom: { style: 'thin', color: { argb: '000000' } },
-                        left: { style: 'thin', color: { argb: '000000' } },
-                        right: { style: 'thin', color: { argb: '000000' } },
-                    };
+                    const data = allProducts.map((product, index) => [
+                        (index + 1).toString(),
+                        product.product_code || '',
+                        product.name_en || '',
+                        product.HS_code || '',
+                    ]);
+
+                    setPdfProgress(50);
+
+                    const doc = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'a4',
+                    });
+
+                    doc.setFontSize(16);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(255, 136, 0);
+                    doc.text('Product List', 105, 20, { align: 'center' });
+
+                    const headers = [['No', 'CODE-PRODUCT', 'NAME-EN', 'HS-CODE']];
+                    const columnWidths = [15, 40, 85, 30];
+
+                    autoTable(doc, {
+                        startY: 30,
+                        head: headers,
+                        body: data,
+                        theme: 'grid',
+                        headStyles: {
+                            fillColor: [255, 136, 0],
+                            textColor: [255, 255, 255],
+                            fontSize: 10,
+                            fontStyle: 'bold',
+                            halign: 'center',
+                            valign: 'middle',
+                        },
+                        bodyStyles: {
+                            fontSize: 9,
+                            textColor: [0, 0, 0],
+                            halign: 'center',
+                            valign: 'middle',
+                        },
+                        alternateRowStyles: {
+                            fillColor: [245, 247, 250],
+                        },
+                        columnStyles: {
+                            0: { cellWidth: columnWidths[0] },
+                            1: { cellWidth: columnWidths[1] },
+                            2: { cellWidth: columnWidths[2] },
+                            3: { cellWidth: columnWidths[3] },
+                        },
+                        margin: { top: 30, left: 10, right: 10 },
+                        didDrawCell: (data) => {
+                            doc.setDrawColor(0, 0, 0);
+                            doc.rect(
+                                data.cell.x,
+                                data.cell.y,
+                                data.cell.width,
+                                data.cell.height,
+                                'S'
+                            );
+                        },
+                    });
+
+                    setPdfProgress(80);
+
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const day = String(now.getDate()).padStart(2, '0');
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const seconds = String(now.getSeconds()).padStart(2, '0');
+                    const dateTime = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+                    const fileName = `Product_List_${dateTime}.pdf`;
+
+                    doc.save(fileName);
+
+                    setPdfProgress(100);
+                    clearInterval(progressInterval);
+
+                    showSuccessAlert({
+                        title: t('success'),
+                        message: t('pdf_downloaded_successfully'),
+                        darkMode,
+                        timeout: 3000,
+                    });
+
+                    setTimeout(() => setPdfProgress(0), 1000);
+                } catch (error) {
+                    console.error('Error downloading PDF:', error);
+                    setPdfProgress(0);
+                    clearInterval(progressInterval);
+                    showErrorAlert({
+                        title: t('error'),
+                        message: t('failed_to_download_pdf'),
+                        darkMode,
+                    });
                 }
-            });
-
-            setExcelProgress(80); // Update progress before file generation
-
-            // Generate filename with DateTime
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const dateTime = `${year}${month}${day}_${hours}${minutes}${seconds}`;
-            const fileName = `Product_List_${dateTime}.xlsx`;
-
-            // Generate and download file
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            saveAs(blob, fileName);
-
-            setExcelProgress(100); // Complete progress
-            clearInterval(progressInterval);
-
-            // Show success alert
-            showSuccessAlert({
-                title: t('success'),
-                message: t('excel_downloaded_successfully'),
-                darkMode,
-                timeout: 3000,
-            });
-
-            // Reset progress after a delay
-            setTimeout(() => setExcelProgress(0), 1000);
-        } catch (error) {
-            console.error('Error downloading Excel:', error);
-            setExcelProgress(0);
-            clearInterval(progressInterval);
-            showErrorAlert({
-                title: t('error'),
-                message: t('failed_to_download_excel'),
-                darkMode,
-            });
-        }
-    };
-
-    const handleDownloadPDF = async () => {
-        try {
-            setPdfProgress(10); // Start progress
-            // Simulate progress updates
-            const progressInterval = setInterval(() => {
-                setPdfProgress((prev) => {
-                    if (prev >= 90) {
-                        return prev;
-                    }
-                    return prev + 10;
-                });
-            }, 500);
-
-            // Fetch all products from the backend
-            const response = await axios.get('/products/all');
-            const allProducts = response.data;
-
-            setPdfProgress(30); // Update progress after fetch
-
-            // Prepare data for PDF, excluding name_kh and name_cn
-            const data = allProducts.map((product, index) => [
-                (index + 1).toString(),
-                product.product_code || '',
-                product.name_en || '',
-                product.HS_code || '',
-            ]);
-
-            setPdfProgress(50); // Update progress after data prep
-
-            // Create a new jsPDF instance
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-            });
-
-            // Add title
-            doc.setFontSize(16);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(255, 136, 0); // Orange color (#FF8800)
-            doc.text('Product List', 105, 20, { align: 'center' });
-
-            // Define table columns and headers
-            const headers = [['No', 'CODE-PRODUCT', 'NAME-EN', 'HS-CODE']];
-            const columnWidths = [15, 40, 85, 30];
-
-            // Use autoTable directly
-            autoTable(doc, {
-                startY: 30,
-                head: headers,
-                body: data,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [255, 136, 0], // Orange header background
-                    textColor: [255, 255, 255], // White text
-                    fontSize: 10,
-                    fontStyle: 'bold',
-                    halign: 'center',
-                    valign: 'middle',
-                },
-                bodyStyles: {
-                    fontSize: 9,
-                    textColor: [0, 0, 0],
-                    halign: 'center',
-                    valign: 'middle',
-                },
-                alternateRowStyles: {
-                    fillColor: [245, 247, 250], // Light gray for alternate rows
-                },
-                columnStyles: {
-                    0: { cellWidth: columnWidths[0] },
-                    1: { cellWidth: columnWidths[1] },
-                    2: { cellWidth: columnWidths[2] },
-                    3: { cellWidth: columnWidths[3] },
-                },
-                margin: { top: 30, left: 10, right: 10 },
-                didDrawCell: (data) => {
-                    // Add borders to all cells
-                    doc.setDrawColor(0, 0, 0);
-                    doc.rect(
-                        data.cell.x,
-                        data.cell.y,
-                        data.cell.width,
-                        data.cell.height,
-                        'S'
-                    );
-                },
-            });
-
-            setPdfProgress(80); // Update progress before file generation
-
-            // Generate filename with DateTime
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const dateTime = `${year}${month}${day}_${hours}${minutes}${seconds}`;
-            const fileName = `Product_List_${dateTime}.pdf`;
-
-            // Save the PDF
-            doc.save(fileName);
-
-            setPdfProgress(100); // Complete progress
-            clearInterval(progressInterval);
-
-            // Show success alert
-            showSuccessAlert({
-                title: t('success'),
-                message: t('pdf_downloaded_successfully'),
-                darkMode,
-                timeout: 3000,
-            });
-
-            // Reset progress after a delay
-            setTimeout(() => setPdfProgress(0), 1000);
-        } catch (error) {
-            console.error('Error downloading PDF:', error);
-            setPdfProgress(0);
-            clearInterval(progressInterval);
-            showErrorAlert({
-                title: t('error'),
-                message: t('failed_to_download_pdf'),
-                darkMode,
-            });
-        }
+            })();
+        });
     };
 
     return (
