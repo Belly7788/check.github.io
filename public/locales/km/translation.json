@@ -49,6 +49,9 @@
     "failed_to_play_video": "បរាជ័យក្នុងការចាក់វីដេអូ!",
     "failed_to_load_video": "បរាជ័យក្នុងការផ្ទុកវីដេអូ!",
 
+    "max_image_limit_exceeded": "អ្នកអាចផ្ទុកឡើងបានអតិបរមា 50 រូបភាពប៉ុណ្ណោះ។",
+    "max_video_limit_exceeded": "អ្នកអាចផ្ទុកឡើងបានអតិបរមា 50 វីដេអូប៉ុណ្ណោះ។",
+
 
     "search_placeholder": "ស្វែងរក...",
     "download": "ទាញយក",

@@ -169,7 +169,7 @@ export default function ListPI({ darkMode, purchaseInvoices, companies = [], shi
     const [settingPopupPosition, setSettingPopupPosition] = useState({ top: 0, left: 0, transformOrigin: 'center top', horizontal: 'right' });
 
     const [openRowDropdown, setOpenRowDropdown] = useState(null);
-    const [activeTab, setActiveTab] = useState('remark');
+    const [activeTab, setActiveTab] = useState('product');
 
     // Add to state declarations
 const [isLoadingdelivery, setIsLoadingdelivery] = useState(false);
@@ -1693,9 +1693,10 @@ const downloadExcel = async (piId) => {
         );
     };
 
-    const handleRowClick = (index) => {
+    const handleRowClick = (index, piId) => {
         setOpenRowDropdown(openRowDropdown === index ? null : index);
-        setActiveTab('remark');
+        setActiveTab('product'); // Set Product tab as active
+        loadProductDetails(piId); // Load product data immediately
     };
 
 
@@ -2075,7 +2076,7 @@ const downloadExcel = async (piId) => {
                                             data.map((pi, index) => (
                                                 <React.Fragment key={pi.id}>
                                                     <tr
-                                                        onClick={() => handleRowClick(index)}
+                                                        onClick={() => handleRowClick(index, pi.id)}
                                                         className={`border-b cursor-pointer ${getDarkModeClass(
                                                             darkMode,
                                                             "bg-[#1A1A1A] text-gray-300 border-gray-700 hover:bg-[#2D2D2D]",
@@ -2110,33 +2111,41 @@ const downloadExcel = async (piId) => {
                                                             </td>
                                                         )}
                                                         {visibleColumns.supplier && (
-                                                        <td
+                                                       <td
                                                             style={{
-                                                            width: `${columnWidths.supplier}px`,
-                                                            minWidth: `${columnWidths.supplier}px`,
-                                                            maxWidth: `${columnWidths.supplier}px`,
+                                                                width: `${columnWidths.supplier || 150}px`,
+                                                                minWidth: `${columnWidths.supplier || 150}px`,
+                                                                maxWidth: `${columnWidths.supplier || 150}px`,
                                                             }}
-                                                            className="p-3 truncate-text"
+                                                            className="p-1 pr-3 pl-3 flex flex-col items-start gap-1"
                                                         >
-                                                            {pi.supplier || pi.pi_name_cn ? (
-                                                                <Clipboard darkMode={darkMode} textToCopy={pi.pi_name_cn || pi.supplier}>
+                                                            {pi.pi_name_cn ? (
+                                                                <Clipboard darkMode={darkMode} textToCopy={pi.pi_name_cn}>
                                                                     <Bellypopover darkMode={darkMode}>
                                                                         <span
-                                                                            className={`label-green ${getDarkModeClass(darkMode, "label-green-darkmode", "")}`}
-                                                                            data-belly-caption={`${pi.pi_name_cn || ''}, ${pi.supplier || ''}`}
+                                                                            className={`label-green ${darkMode ? "label-green-darkmode" : ""} inline-block w-auto`}
+                                                                            data-belly-caption={pi.pi_name_cn}
                                                                         >
-                                                                            {pi.pi_name_cn
-                                                                            ? pi.pi_name_cn.length > 20
-                                                                                ? `${pi.pi_name_cn.substring(0, 17)}...`
-                                                                                : pi.pi_name_cn
-                                                                            : pi.supplier && pi.supplier.length > 20
-                                                                            ? `${pi.supplier.substring(0, 17)}...`
-                                                                            : pi.supplier || ""}
+                                                                            {pi.pi_name_cn.length > 20 ? `${pi.pi_name_cn.substring(0, 17)}...` : pi.pi_name_cn}
                                                                         </span>
                                                                     </Bellypopover>
                                                                 </Clipboard>
                                                             ) : (
-                                                            ""
+                                                                ""
+                                                            )}
+                                                            {pi.supplier ? (
+                                                                <Clipboard darkMode={darkMode} textToCopy={pi.supplier}>
+                                                                    <Bellypopover darkMode={darkMode}>
+                                                                        <span
+                                                                            className={`label-pink ${darkMode ? "label-pink-darkmode" : ""} inline-block w-auto`}
+                                                                            data-belly-caption={pi.supplier}
+                                                                        >
+                                                                            {pi.supplier.length > 20 ? `${pi.supplier.substring(0, 17)}...` : pi.supplier}
+                                                                        </span>
+                                                                    </Bellypopover>
+                                                                </Clipboard>
+                                                            ) : (
+                                                                ""
                                                             )}
                                                         </td>
                                                         )}
@@ -2211,23 +2220,23 @@ const downloadExcel = async (piId) => {
                                                                 className="p-1 pr-3 pl-3 flex flex-col items-start gap-1"
                                                             >
                                                                 {pi.shipment_name ? (
-                                                                <span
-                                                                    className={`label-Purple ${darkMode ? "label-Purple-darkmode" : ""} inline-block w-auto`}
-                                                                    data-belly-caption={pi.shipment_name}
-                                                                >
-                                                                    {pi.shipment_name}
-                                                                </span>
+                                                                    <span
+                                                                        className={`label-Purple ${darkMode ? "label-Purple-darkmode" : ""} inline-block w-auto`}
+                                                                        data-belly-caption={pi.shipment_name}
+                                                                    >
+                                                                        {pi.shipment_name}
+                                                                    </span>
                                                                 ) : (
                                                                 ""
                                                                 )}
 
                                                                 {pi.name_method ? (
-                                                                <span
-                                                                    className={`label-green ${getDarkModeClass(darkMode, "label-green-darkmode", "")} inline-block w-auto`}
-                                                                    data-belly-caption={pi.name_method}
-                                                                >
-                                                                    {pi.name_method}
-                                                                </span>
+                                                                    <span
+                                                                        className={`label-green ${getDarkModeClass(darkMode, "label-green-darkmode", "")} inline-block w-auto`}
+                                                                        data-belly-caption={pi.name_method}
+                                                                    >
+                                                                        {pi.name_method}
+                                                                    </span>
                                                                 ) : (
                                                                 ""
                                                                 )}
@@ -2447,10 +2456,11 @@ const downloadExcel = async (piId) => {
                                                                     className="p-4"
                                                                 >
                                                                     <div className="flex border-gray-300 dark:border-gray-600">
+                                                                        {/* Product Tab (Position 1) */}
                                                                         <button
-                                                                            onClick={() => setActiveTab("remark")}
+                                                                            onClick={() => handleTabChange("product", pi.id)}
                                                                             className={`px-4 uppercase py-2 text-sm font-medium ${
-                                                                                activeTab === "remark"
+                                                                                activeTab === "product"
                                                                                     ? "border-b-2 border-orange-500 text-orange-500"
                                                                                     : "text-gray-500 hover:text-orange-500"
                                                                             } ${getDarkModeClass(
@@ -2459,8 +2469,9 @@ const downloadExcel = async (piId) => {
                                                                                 "text-gray-700 hover:text-orange-600"
                                                                             )}`}
                                                                         >
-                                                                            {t("list_pis.remark")}
+                                                                            {t("list_pis.product")}
                                                                         </button>
+                                                                        {/* Reference Tab (Position 2) */}
                                                                         <button
                                                                             onClick={() => handleTabChange("reference", pi.id)}
                                                                             className={`px-4 uppercase py-2 text-sm font-medium ${
@@ -2475,10 +2486,11 @@ const downloadExcel = async (piId) => {
                                                                         >
                                                                             {t("list_pis.reference")}
                                                                         </button>
+                                                                        {/* Remark Tab (Position 3) */}
                                                                         <button
-                                                                            onClick={() => handleTabChange("product", pi.id)}
+                                                                            onClick={() => setActiveTab("remark")}
                                                                             className={`px-4 uppercase py-2 text-sm font-medium ${
-                                                                                activeTab === "product"
+                                                                                activeTab === "remark"
                                                                                     ? "border-b-2 border-orange-500 text-orange-500"
                                                                                     : "text-gray-500 hover:text-orange-500"
                                                                             } ${getDarkModeClass(
@@ -2487,7 +2499,7 @@ const downloadExcel = async (piId) => {
                                                                                 "text-gray-700 hover:text-orange-600"
                                                                             )}`}
                                                                         >
-                                                                            {t("list_pis.product")}
+                                                                            {t("list_pis.remark")}
                                                                         </button>
                                                                     </div>
                                                                     <div
@@ -3814,91 +3826,91 @@ const downloadExcel = async (piId) => {
                                                 </span>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div className="w-full">
-        <label
-            className={`uppercase block font-medium mb-1 ${getDarkModeClass(
-                darkMode,
-                "text-gray-300",
-                "text-gray-700"
-            )}`}
-        >
-            {t("list_pis.discount")}
-        </label>
-        <div className="relative mb-2">
-            <input
-                type="text"
-                name="discount"
-                value={formData.discount}
-                readOnly={hasCheckboxChecked} // Set readOnly based on hasCheckboxChecked
-                onChange={(e) => {
-                    if (!hasCheckboxChecked) {
-                        const value = e.target.value;
-                        if (isValidInput(value)) {
-                            setFormData({ ...formData, discount: value });
-                        }
-                    }
-                }}
-                className={`w-full border rounded-lg p-2 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
-                    darkMode,
-                    "bg-[#2D2D2D] text-gray-300 border-gray-700",
-                    "bg-white text-gray-900 border-gray-200"
-                )} ${hasCheckboxChecked ? 'cursor-not-allowed opacity-50' : ''}`}
-                placeholder={t("list_pis.discount")}
-            />
-            <span
-                className={`absolute inset-y-0 right-0 flex items-center pr-3 ${getDarkModeClass(
-                    darkMode,
-                    "text-gray-400",
-                    "text-gray-500"
-                )}`}
-            >
-                $
-            </span>
-        </div>
-    </div>
-    <div className="w-full">
-        <label
-            className={`uppercase block font-medium mb-1 ${getDarkModeClass(
-                darkMode,
-                "text-gray-300",
-                "text-gray-700"
-            )}`}
-        >
-            {t("list_pis.extracharge")}
-        </label>
-        <div className="relative mb-2">
-            <input
-                type="text"
-                name="extra_charge"
-                value={formData.extra_charge}
-                readOnly={hasCheckboxChecked} // Set readOnly based on hasCheckboxChecked
-                onChange={(e) => {
-                    if (!hasCheckboxChecked) {
-                        const value = e.target.value;
-                        if (isValidInput(value)) {
-                            setFormData({ ...formData, extra_charge: value });
-                        }
-                    }
-                }}
-                className={`w-full border rounded-lg p-2 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
-                    darkMode,
-                    "bg-[#2D2D2D] text-gray-300 border-gray-700",
-                    "bg-white text-gray-900 border-gray-200"
-                )} ${hasCheckboxChecked ? 'cursor-not-allowed opacity-50' : ''}`}
-                placeholder={t("list_pis.extracharge")}
-            />
-            <span
-                className={`absolute inset-y-0 right-0 flex items-center pr-3 ${getDarkModeClass(
-                    darkMode,
-                    "text-gray-400",
-                    "text-gray-500"
-                )}`}
-            >
-                $
-            </span>
-        </div>
-    </div>
-</div>
+                                                <div className="w-full">
+                                                    <label
+                                                        className={`uppercase block font-medium mb-1 ${getDarkModeClass(
+                                                            darkMode,
+                                                            "text-gray-300",
+                                                            "text-gray-700"
+                                                        )}`}
+                                                    >
+                                                        {t("list_pis.discount")}
+                                                    </label>
+                                                    <div className="relative mb-2">
+                                                        <input
+                                                            type="text"
+                                                            name="discount"
+                                                            value={formData.discount}
+                                                            readOnly={hasCheckboxChecked} // Set readOnly based on hasCheckboxChecked
+                                                            onChange={(e) => {
+                                                                if (!hasCheckboxChecked) {
+                                                                    const value = e.target.value;
+                                                                    if (isValidInput(value)) {
+                                                                        setFormData({ ...formData, discount: value });
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className={`w-full border rounded-lg p-2 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
+                                                                darkMode,
+                                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                                "bg-white text-gray-900 border-gray-200"
+                                                            )} ${hasCheckboxChecked ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                            placeholder={t("list_pis.discount")}
+                                                        />
+                                                        <span
+                                                            className={`absolute inset-y-0 right-0 flex items-center pr-3 ${getDarkModeClass(
+                                                                darkMode,
+                                                                "text-gray-400",
+                                                                "text-gray-500"
+                                                            )}`}
+                                                        >
+                                                            $
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full">
+                                                    <label
+                                                        className={`uppercase block font-medium mb-1 ${getDarkModeClass(
+                                                            darkMode,
+                                                            "text-gray-300",
+                                                            "text-gray-700"
+                                                        )}`}
+                                                    >
+                                                        {t("list_pis.extracharge")}
+                                                    </label>
+                                                    <div className="relative mb-2">
+                                                        <input
+                                                            type="text"
+                                                            name="extra_charge"
+                                                            value={formData.extra_charge}
+                                                            readOnly={hasCheckboxChecked} // Set readOnly based on hasCheckboxChecked
+                                                            onChange={(e) => {
+                                                                if (!hasCheckboxChecked) {
+                                                                    const value = e.target.value;
+                                                                    if (isValidInput(value)) {
+                                                                        setFormData({ ...formData, extra_charge: value });
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className={`w-full border rounded-lg p-2 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
+                                                                darkMode,
+                                                                "bg-[#2D2D2D] text-gray-300 border-gray-700",
+                                                                "bg-white text-gray-900 border-gray-200"
+                                                            )} ${hasCheckboxChecked ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                            placeholder={t("list_pis.extracharge")}
+                                                        />
+                                                        <span
+                                                            className={`absolute inset-y-0 right-0 flex items-center pr-3 ${getDarkModeClass(
+                                                                darkMode,
+                                                                "text-gray-400",
+                                                                "text-gray-500"
+                                                            )}`}
+                                                        >
+                                                            $
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <label
                                                 className={`uppercase block font-medium mb-1 ${getDarkModeClass(
                                                     darkMode,

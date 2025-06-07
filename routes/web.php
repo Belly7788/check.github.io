@@ -32,6 +32,11 @@ Route::get('/product/product_cost', function () {
     return inertia('Products/Product-costing');
 })->middleware('auth');
 
+Route::get('/test', function () {
+    // sleep(1);
+    return inertia('Products/test');
+})->middleware('auth');
+
 
 // route payment
 Route::middleware('auth')->group(function () {
@@ -69,7 +74,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth');
 Route::post('/check-permission', [PermissionController::class, 'checkPermission'])->middleware('auth');
 
 
-// route pi 
+// route pi
 Route::middleware('auth')->group(function () {
     Route::get('/pi/list', [ListPiController::class, 'index'])->name('pi.list');
     Route::get('/pi/{piId}/reference-photos', [ListPiController::class, 'getReferencePhotos'])->name('pi.reference-photos');

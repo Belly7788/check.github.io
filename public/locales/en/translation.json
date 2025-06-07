@@ -48,6 +48,8 @@
     "pip_not_supported": "Picture-in-Picture is not supported in this browser!",
     "failed_to_play_video": "Failed to play video!",
     "failed_to_load_video": "Failed to load video!",
+    "max_image_limit_exceeded": "You can only upload a maximum of 50 images.",
+    "max_video_limit_exceeded": "You can only upload a maximum of 50 videos.",
 
 
 
