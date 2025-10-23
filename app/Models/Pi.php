@@ -29,6 +29,7 @@ class Pi extends Model
         'openbalance',
         'user_id',
         'status',
+        'tracking_status',
     ];
 
     protected $casts = [
@@ -61,4 +62,6 @@ class Pi extends Model
     {
         return $this->belongsTo(Method::class, 'shipping_method', 'id');
     }
+
+    
 }

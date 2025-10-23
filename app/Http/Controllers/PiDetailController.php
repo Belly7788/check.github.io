@@ -6,6 +6,8 @@ use App\Models\PiDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Facades\Image;
 
 class PiDetailController extends Controller
 {
@@ -43,8 +45,10 @@ class PiDetailController extends Controller
                 'delivery' => 'required|string',
                 'cargo_date' => 'nullable|date',
                 'note_receipt' => 'nullable|string',
-                'receipt_pictures.*' => 'nullable|file|image',
-                'receipt_products.*' => 'nullable|file|image',
+                'receipt_pictures.*' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'receipt_products.*' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+                'receipt_pictures_to_keep' => 'nullable|string',
+                'receipt_products_to_keep' => 'nullable|string',
             ]);
 
             // Handle receipt_pictures
@@ -58,10 +62,7 @@ class PiDetailController extends Controller
             // Delete pictures not in receipt_pictures_to_keep
             foreach ($currentPictures as $picture) {
                 if (!in_array($picture, $receiptPicturesToKeep)) {
-                    $filePath = public_path('storage/uploads/receipt_picture/' . $picture);
-                    if (file_exists($filePath)) {
-                        unlink($filePath);
-                    }
+                    Storage::disk('public')->delete('uploads/receipt_picture/' . $picture);
                 }
             }
 
@@ -70,8 +71,8 @@ class PiDetailController extends Controller
             if ($request->hasFile('receipt_pictures')) {
                 foreach ($request->file('receipt_pictures') as $photo) {
                     if ($photo->isValid()) {
-                        $filename = Carbon::now()->format('YmdHis') . '_' . Str::random(10) . '.' . $photo->extension();
-                        $path = $photo->storeAs('uploads/receipt_picture', $filename, 'public');
+                        $filename = $this->generateUniqueFilename('webp');
+                        $path = $this->processImage($photo, 'uploads/receipt_picture', $filename);
                         $newPictures[] = $filename;
                     }
                 }
@@ -88,10 +89,7 @@ class PiDetailController extends Controller
             // Delete products not in receipt_products_to_keep
             foreach ($currentProducts as $product) {
                 if (!in_array($product, $receiptProductsToKeep)) {
-                    $filePath = public_path('storage/uploads/receipt_product/' . $product);
-                    if (file_exists($filePath)) {
-                        unlink($filePath);
-                    }
+                    Storage::disk('public')->delete('uploads/receipt_product/' . $product);
                 }
             }
 
@@ -100,8 +98,8 @@ class PiDetailController extends Controller
             if ($request->hasFile('receipt_products')) {
                 foreach ($request->file('receipt_products') as $photo) {
                     if ($photo->isValid()) {
-                        $filename = Carbon::now()->format('YmdHis') . '_' . Str::random(10) . '.' . $photo->extension();
-                        $path = $photo->storeAs('uploads/receipt_product', $filename, 'public');
+                        $filename = $this->generateUniqueFilename('webp');
+                        $path = $this->processImage($photo, 'uploads/receipt_product', $filename);
                         $newProducts[] = $filename;
                     }
                 }
@@ -132,5 +130,24 @@ class PiDetailController extends Controller
                 'message' => 'Failed to update PI detail: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function generateUniqueFilename($extension)
+    {
+        $datetime = Carbon::now()->format('YmdHis');
+        $randomString = Str::random(100);
+        return "{$datetime}_{$randomString}.{$extension}";
+    }
+
+    private function processImage($file, $path, $filename)
+    {
+        $image = Image::make($file)
+            ->orientate()
+            ->encode('webp', 75);
+
+        $fullPath = storage_path('app/public/' . $path . '/' . $filename);
+        Storage::disk('public')->put($path . '/' . $filename, (string) $image);
+
+        return $filename;
     }
 }

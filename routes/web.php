@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AfterSale2Controller;
+use App\Http\Controllers\AfterSaleController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CompanyController;
@@ -32,11 +34,33 @@ Route::get('/product/product_cost', function () {
     return inertia('Products/Product-costing');
 })->middleware('auth');
 
-Route::get('/test', function () {
-    // sleep(1);
-    return inertia('Products/test');
-})->middleware('auth');
 
+Route::get('/payment/after-sale', [AfterSale2Controller::class, 'index'])
+    ->middleware('auth')
+    ->name('payment.after-sale');
+Route::get('/payment/after-sale/{id}', [AfterSale2Controller::class, 'show'])
+    ->middleware('auth')
+    ->name('payment.after-sale.show');
+
+
+
+Route::middleware('auth')->group(function () {
+   // Route for create-after-sale
+    Route::get('/payment/create-after-sale', [AfterSaleController::class, 'create'])->name('payment.create-after-sale');
+    Route::get('/problems/search', [AfterSaleController::class, 'searchProblems'])->name('problems.search');
+    Route::get('/pi-number/unit-price', [AfterSaleController::class, 'getUnitPrice'])->name('pi-number.unit-price');
+
+    // Routes for PI-related actions
+    Route::post('/after-sale/store', [AfterSaleController::class, 'store'])->name('pi.store');
+    Route::get('/pi-number/search-products', [AfterSaleController::class, 'searchProductsByPiNumber'])->name('pi.search-products');
+    Route::get('/companies/search', [AfterSaleController::class, 'searchCompanies'])->name('companies.search');
+    Route::get('/pi-number/validate', [AfterSaleController::class, 'validatePiNumber'])->name('pi.validate');
+});
+
+Route::get('/calculator', function () {
+    // sleep(1);
+    return inertia('calculator/WholesaleCosting');
+})->middleware('auth');
 
 // route payment
 Route::middleware('auth')->group(function () {
@@ -142,6 +166,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/product/images/{productId}', [ProductController::class, 'getImages'])->name('products.images');
     Route::get('/product/videos/{productId}', [ProductController::class, 'getVideos'])->name('products.videos');
     Route::get('/products/all', [ProductController::class, 'getAllProducts'])->name('products.all');
+    Route::get('/product/proforma-invoices/{productId}', [ProductController::class, 'getProformaInvoices'])->name('products.proforma_invoices');
+    Route::get('/product/purchase-orders/{productId}', [ProductController::class, 'getPurchaseOrders'])->name('products.purchase_orders');
 
 
     //route create pi
@@ -164,9 +190,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/po/{poDetail}/toggle-order', [ListPOController::class, 'toggleOrder'])->name('po.toggle-order');
 
 });
-
-
-
 
 
 

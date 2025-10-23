@@ -63,6 +63,7 @@ const DropdownInput = ({
                 <input
                     type="text"
                     name={name}
+                    autocomplete="off"
                     value={isOpen ? tempSearchTerm : searchTerm}
                     onChange={handleInputChange}
                     onClick={() => {

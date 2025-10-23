@@ -65,10 +65,29 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setIsEditMode(false);
-        setEditShipmentId(null);
-        setFormData({ shipment_name: "", address: "", note: "" });
+        const hasChanges = formData.shipment_name || formData.address || formData.note;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditShipmentId(null);
+                    setFormData({ shipment_name: "", address: "", note: "" });
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsPopupOpen(false);
+            setIsEditMode(false);
+            setEditShipmentId(null);
+            setFormData({ shipment_name: "", address: "", note: "" });
+        }
     };
 
     // Toggle row dropdown
@@ -119,7 +138,11 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
             router[method](url, formData, {
                 onSuccess: () => {
                     setIsSaving(false);
-                    closePopup();
+                    // Close popup without confirmation
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditShipmentId(null);
+                    setFormData({ shipment_name: "", address: "", note: "" });
                     showSuccessAlert({
                         title: t("success"),
                         message: isEditMode ? t("shipment_t.shipment_updated_successfully") : t("shipment_t.shipment_created_successfully"),
@@ -262,23 +285,50 @@ export default function ShipmentManager({ darkMode, shipments, filters, flash })
     // Handle ESC and click outside
     useEffect(() => {
         const handleEsc = (event) => {
-            if (event.key === "Escape") {
-                closePopup();
+            if (event.key === "Escape" && isPopupOpen) {
+                const hasChanges = formData.shipment_name || formData.address || formData.note;
+
+                if (hasChanges) {
+                    showConfirmAlert({
+                        title: t("confirm_close_title"),
+                        message: t("confirm_close_popup"),
+                        darkMode,
+                        onConfirm: () => {
+                            setIsPopupOpen(false);
+                            setIsEditMode(false);
+                            setEditShipmentId(null);
+                            setFormData({ shipment_name: "", address: "", note: "" });
+                            setExpandedRow(null);
+                        },
+                        onCancel: () => {
+                            // Do nothing, keep the popup open
+                        },
+                    });
+                } else {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditShipmentId(null);
+                    setFormData({ shipment_name: "", address: "", note: "" });
+                    setExpandedRow(null);
+                }
+            } else if (event.key === "Escape") {
                 setExpandedRow(null);
             }
         };
+
         const handleClickOutside = (event) => {
             if (!event.target.closest(".action-container")) {
                 setOpenActionDropdown(null);
             }
         };
+
         window.addEventListener("keydown", handleEsc);
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             window.removeEventListener("keydown", handleEsc);
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [isPopupOpen, formData.shipment_name, formData.address, formData.note, darkMode, t]);
 
     useEffect(() => {
         const handleCtrlEnter = (event) => {

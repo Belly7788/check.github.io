@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Intervention\Image\Facades\Image;
 
 class PaymentController extends Controller
 {
@@ -242,10 +245,10 @@ class PaymentController extends Controller
             'payment_method' => 'required|in:1,2', // 1 = Bank, 2 = Cash
             'payment_number' => 'required|string|unique:tbpayment,payment_number',
             'memo' => 'nullable|string',
-            'reference_payments.*' => 'nullable|image', // Validate images
-            'payment_details' => 'required|array|min:1', // Ensure at least one detail
+            'reference_payments.*' => 'nullable|image|mimes:jpeg,png,jpg,gif',
+            'payment_details' => 'required|array|min:1',
             'payment_details.*.pi_id' => 'required|exists:tbpi,id',
-            'payment_details.*.checkbox' => 'nullable|in:1', // Checkbox can be null or 1
+            'payment_details.*.checkbox' => 'nullable|in:1',
             'payment_details.*.payment_balance' => 'required|numeric|min:0',
             'payment_details.*.discount_payment' => 'nullable|numeric|min:0',
             'payment_details.*.status_discount' => 'nullable|in:$,%',
@@ -271,22 +274,15 @@ class PaymentController extends Controller
 
         // Handle Reference Payment Images
         if ($request->hasFile('reference_payments')) {
-            foreach ($request->file('reference_payments') as $index => $image) {
-                // Generate datetime prefix
-                $datetime = now()->format('Ymd_His');
-                // Generate random 50-character alphanumeric string
-                $randomString = \Illuminate\Support\Str::random(50);
-                // Get file extension
-                $extension = $image->getClientOriginalExtension();
-                // Create filename with datetime and random string
-                $filename = "payment_{$payment->id}_{$datetime}_{$randomString}.{$extension}";
-                // Store the image in public/storage/uploads/payment/
-                $path = $image->storeAs('uploads/payment', $filename, 'public');
-                // Save only the filename to tbreference_payment table
-                ReferencePayment::create([
-                    'payment_id' => $payment->id,
-                    'image' => $filename,
-                ]);
+            foreach ($request->file('reference_payments') as $image) {
+                if ($image->isValid()) {
+                    $filename = $this->generateUniqueFilename('webp');
+                    $path = $this->processImage($image, 'uploads/payment', $filename);
+                    ReferencePayment::create([
+                        'payment_id' => $payment->id,
+                        'image' => $filename,
+                    ]);
+                }
             }
         }
 
@@ -363,7 +359,7 @@ class PaymentController extends Controller
             'payment_number' => 'required|string|unique:tbpayment,payment_number,' . $id,
             'memo' => 'nullable|string',
             'status' => 'required|in:0,1',
-            'reference_payments.*' => 'nullable|image',
+            'reference_payments.*' => 'nullable|image|mimes:jpeg,png,jpg,gif',
             'payment_details' => 'required|array|min:1',
             'payment_details.*.pi_id' => 'required|exists:tbpi,id',
             'payment_details.*.checkbox' => 'nullable|in:1',
@@ -371,7 +367,7 @@ class PaymentController extends Controller
             'payment_details.*.discount_payment' => 'nullable|numeric|min:0',
             'payment_details.*.status_discount' => 'nullable|in:$,%',
             'payment_details.*.payment' => 'nullable|numeric|min:0',
-            'deleted_images' => 'nullable|string', // For deleted reference payment images
+            'deleted_images' => 'nullable|string',
         ]);
 
         // Find the payment
@@ -384,6 +380,7 @@ class PaymentController extends Controller
             'payment_method' => $validated['payment_method'],
             'payment_number' => $validated['payment_number'],
             'memo' => $validated['memo'],
+            'aprove' => $validated['status'],
             'updated_by' => Auth::id(),
         ]);
 
@@ -394,9 +391,7 @@ class PaymentController extends Controller
                 foreach ($deletedImages as $imageId) {
                     $referencePayment = ReferencePayment::find($imageId);
                     if ($referencePayment) {
-                        // Delete the image file from storage
                         Storage::disk('public')->delete('uploads/payment/' . $referencePayment->image);
-                        // Delete the reference payment record
                         $referencePayment->delete();
                     }
                 }
@@ -405,16 +400,15 @@ class PaymentController extends Controller
 
         // Handle new reference payment images
         if ($request->hasFile('reference_payments')) {
-            foreach ($request->file('reference_payments') as $index => $image) {
-                $datetime = now()->format('Ymd_His');
-                $randomString = \Illuminate\Support\Str::random(50);
-                $extension = $image->getClientOriginalExtension();
-                $filename = "payment_{$payment->id}_{$datetime}_{$randomString}.{$extension}";
-                $path = $image->storeAs('uploads/payment', $filename, 'public');
-                ReferencePayment::create([
-                    'payment_id' => $payment->id,
-                    'image' => $filename,
-                ]);
+            foreach ($request->file('reference_payments') as $image) {
+                if ($image->isValid()) {
+                    $filename = $this->generateUniqueFilename('webp');
+                    $path = $this->processImage($image, 'uploads/payment', $filename);
+                    ReferencePayment::create([
+                        'payment_id' => $payment->id,
+                        'image' => $filename,
+                    ]);
+                }
             }
         }
 
@@ -535,9 +529,7 @@ class PaymentController extends Controller
             // Delete reference payment images from storage
             $referencePayments = ReferencePayment::where('payment_id', $payment->id)->get();
             foreach ($referencePayments as $referencePayment) {
-                // Delete the image file from storage
                 Storage::disk('public')->delete('uploads/payment/' . $referencePayment->image);
-                // Delete the reference payment record
                 $referencePayment->delete();
             }
 
@@ -554,5 +546,24 @@ class PaymentController extends Controller
                 'error' => 'An error occurred while deleting the payment.',
             ]);
         }
+    }
+
+    private function generateUniqueFilename($extension)
+    {
+        $datetime = Carbon::now()->format('YmdHis');
+        $randomString = Str::random(100);
+        return "{$datetime}_{$randomString}.{$extension}";
+    }
+
+    private function processImage($file, $path, $filename)
+    {
+        $image = Image::make($file)
+            ->orientate()
+            ->encode('webp', 75);
+
+        $fullPath = storage_path('app/public/' . $path . '/' . $filename);
+        Storage::disk('public')->put($path . '/' . $filename, (string) $image);
+
+        return $filename;
     }
 }

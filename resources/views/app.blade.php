@@ -11,7 +11,7 @@
     <link rel="icon" href="{{ asset('images/Logo/Logo.png') }}" />
     @viteReactRefresh
     @vite('resources/js/app.jsx')
-    @inertiaHead
+    @inertiaHead 
 </head>
 <body>
     @inertia

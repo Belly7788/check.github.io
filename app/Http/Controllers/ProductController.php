@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pi;
+use App\Models\PiDetail;
+use App\Models\PoDetail;
+use App\Models\Shipment;
+use App\Models\Method;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVideo;
@@ -10,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Intervention\Image\Facades\Image;
 
 class ProductController extends Controller
 {
@@ -19,7 +25,7 @@ class ProductController extends Controller
         $page = $request->query('page', 1);
         $search = $request->query('search');
 
-        $query = Product::query()->where('status', 1); // Only get products with status = 1
+        $query = Product::query()->where('status', 1);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -43,7 +49,7 @@ class ProductController extends Controller
                 'currentPage' => $products->currentPage(),
                 'lastPage' => $products->lastPage(),
             ],
-            'darkMode' => true, // Adjust based on your dark mode logic
+            'darkMode' => true,
         ]);
     }
 
@@ -54,7 +60,6 @@ class ProductController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                // Ensure product_code is unique for products with status = 1
                 function ($attribute, $value, $fail) {
                     if ($value && Product::where('product_code', $value)->where('status', 1)->exists()) {
                         $fail('The product code has already been taken.');
@@ -85,8 +90,8 @@ class ProductController extends Controller
 
         if ($request->hasFile('default_image')) {
             $file = $request->file('default_image');
-            $filename = $this->generateUniqueFilename($file->getClientOriginalExtension());
-            $path = $file->storeAs('uploads/images', $filename, 'public');
+            $filename = $this->generateUniqueFilename('webp');
+            $path = $this->processImage($file, 'uploads/images', $filename);
             $product->image = 'uploads/images/' . $filename;
         }
 
@@ -94,8 +99,8 @@ class ProductController extends Controller
 
         if ($request->hasFile('thumbnails')) {
             foreach ($request->file('thumbnails') as $thumbnail) {
-                $filename = $this->generateUniqueFilename($thumbnail->getClientOriginalExtension());
-                $path = $thumbnail->storeAs('uploads/promotions', $filename, 'public');
+                $filename = $this->generateUniqueFilename('webp');
+                $path = $this->processImage($thumbnail, 'uploads/promotions', $filename);
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image' => 'uploads/promotions/' . $filename,
@@ -105,7 +110,7 @@ class ProductController extends Controller
 
         if ($request->hasFile('videos')) {
             foreach ($request->file('videos') as $video) {
-                $filename = $this->generateUniqueFilename($video->getClientOriginalExtension());
+                $filename = $this->generateUniqueFilename('mp4'); // Changed to 'mp4'
                 $path = $video->storeAs('uploads/videos', $filename, 'public');
                 ProductVideo::create([
                     'product_id' => $product->id,
@@ -117,22 +122,15 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', 'Product created successfully.');
     }
 
-    public function show($id)
-    {
-        $product = Product::with(['images', 'videos'])->where('status', 1)->findOrFail($id); // Only show if status = 1
-        return response()->json($product);
-    }
-
     public function update(Request $request, $id)
     {
-        $product = Product::where('status', 1)->findOrFail($id); // Only update if status = 1
+        $product = Product::where('status', 1)->findOrFail($id);
 
         $validated = $request->validate([
             'product_code' => [
                 'nullable',
                 'string',
                 'max:100',
-                // Ensure product_code is unique for products with status = 1, excluding current product
                 function ($attribute, $value, $fail) use ($id) {
                     if ($value && Product::where('product_code', $value)->where('status', 1)->where('id', '!=', $id)->exists()) {
                         $fail('The product code has already been taken.');
@@ -148,11 +146,12 @@ class ProductController extends Controller
             'thumbnails.*' => 'nullable|image',
             'videos.*' => 'nullable|mimetypes:video/mp4,video/mpeg,video/quicktime',
             'existing_default_image' => 'nullable|string',
+            'existing_thumbnails' => 'nullable|array',
             'existing_thumbnails.*' => 'nullable|string',
+            'existing_videos' => 'nullable|array',
             'existing_videos.*' => 'nullable|string',
         ]);
 
-        // Update product fields
         $product->update([
             'product_code' => $validated['product_code'] ?? $product->product_code,
             'name_kh' => $validated['name_kh'] ?? $product->name_kh,
@@ -164,20 +163,18 @@ class ProductController extends Controller
 
         // Handle default image
         if ($request->hasFile('default_image')) {
-            // Delete old image if exists
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
             $file = $request->file('default_image');
-            $filename = $this->generateUniqueFilename($file->getClientOriginalExtension());
-            $path = $file->storeAs('uploads/images', $filename, 'public');
+            $filename = $this->generateUniqueFilename('webp');
+            $path = $this->processImage($file, 'uploads/images', $filename);
             $product->image = 'uploads/images/' . $filename;
             $product->save();
         } elseif ($request->input('existing_default_image')) {
             $product->image = $request->input('existing_default_image');
             $product->save();
         } elseif (!$request->hasFile('default_image') && !$request->input('existing_default_image')) {
-            // If no new image and no existing image is provided, remove the default image
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
                 $product->image = null;
@@ -187,7 +184,6 @@ class ProductController extends Controller
 
         // Handle thumbnails
         $existingThumbnails = $request->input('existing_thumbnails', []);
-        // Delete thumbnails not included in existing_thumbnails
         ProductImage::where('product_id', $product->id)
             ->whereNotIn('image', $existingThumbnails)
             ->each(function ($image) {
@@ -197,8 +193,8 @@ class ProductController extends Controller
 
         if ($request->hasFile('thumbnails')) {
             foreach ($request->file('thumbnails') as $thumbnail) {
-                $filename = $this->generateUniqueFilename($thumbnail->getClientOriginalExtension());
-                $path = $thumbnail->storeAs('uploads/promotions', $filename, 'public');
+                $filename = $this->generateUniqueFilename('webp');
+                $path = $this->processImage($thumbnail, 'uploads/promotions', $filename);
                 ProductImage::create([
                     'product_id' => $product->id,
                     'image' => 'uploads/promotions/' . $filename,
@@ -208,7 +204,6 @@ class ProductController extends Controller
 
         // Handle videos
         $existingVideos = $request->input('existing_videos', []);
-        // Delete videos not included in existing_videos
         ProductVideo::where('product_id', $product->id)
             ->whereNotIn('video', $existingVideos)
             ->each(function ($video) {
@@ -218,7 +213,7 @@ class ProductController extends Controller
 
         if ($request->hasFile('videos')) {
             foreach ($request->file('videos') as $video) {
-                $filename = $this->generateUniqueFilename($video->getClientOriginalExtension());
+                $filename = $this->generateUniqueFilename('mp4'); // Changed to 'mp4'
                 $path = $video->storeAs('uploads/videos', $filename, 'public');
                 ProductVideo::create([
                     'product_id' => $product->id,
@@ -229,22 +224,25 @@ class ProductController extends Controller
 
         return redirect()->route('products.index')->with('success', 'Product updated successfully.');
     }
+
+    public function show($id)
+    {
+        $product = Product::with(['images', 'videos'])->where('status', 1)->findOrFail($id);
+        return response()->json($product);
+    }
+
     public function getAllProducts()
     {
         $products = Product::where('status', 1)
             ->orderBy('id', 'desc')
             ->get(['id', 'product_code', 'name_kh', 'name_en', 'name_cn', 'HS_code']);
-
         return response()->json($products);
     }
 
     public function destroy($id)
     {
-        $product = Product::where('status', 1)->findOrFail($id); // Only "delete" if status = 1
-
-        // Update status to 0 instead of deleting
+        $product = Product::where('status', 1)->findOrFail($id);
         $product->update(['status' => 0]);
-
         return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
     }
 
@@ -266,4 +264,74 @@ class ProductController extends Controller
         $randomString = Str::random(100);
         return "{$datetime}_{$randomString}.{$extension}";
     }
+
+    private function processImage($file, $path, $filename)
+    {
+        $image = Image::make($file)
+            ->orientate()
+            ->encode('webp', 75);
+
+        $fullPath = storage_path('app/public/' . $path . '/' . $filename);
+        Storage::disk('public')->put($path . '/' . $filename, (string) $image);
+
+        return $path . '/' . $filename;
+    }
+
+    public function getProformaInvoices(Request $request, $productId)
+    {
+        $perPage = $request->query('perPage', 10);
+        $page = $request->query('page', 1);
+
+        $proformaInvoices = Pi::where('tbpi.status', 1)
+            ->leftJoin('tbpidetail', 'tbpi.id', '=', 'tbpidetail.pi_id')
+            ->leftJoin('tbshipment', 'tbpi.shipment_id', '=', 'tbshipment.id')
+            ->leftJoin('tbmethod', 'tbpi.shipping_method', '=', 'tbmethod.id')
+            ->where('tbpidetail.product_id', $productId)
+            ->select(
+                'tbpi.pi_number',
+                'tbpi.date',
+                'tbshipment.shipment_name as ship_by',
+                'tbmethod.name_method as method',
+                'tbpi.reciept_number as reference_number',
+                'tbpi.tracking_number',
+                'tbpi.arrival_date',
+                'tbpidetail.cargo_date as delivered_date'
+            )
+            ->orderBy('tbpi.id', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'proforma_invoices' => $proformaInvoices->items(),
+            'pagination' => [
+                'total' => $proformaInvoices->total(),
+                'perPage' => $proformaInvoices->perPage(),
+                'currentPage' => $proformaInvoices->currentPage(),
+                'lastPage' => $proformaInvoices->lastPage(),
+            ],
+        ]);
+    }
+
+    public function getPurchaseOrders(Request $request, $productId)
+    {
+        $perPage = $request->query('perPage', 10);
+        $page = $request->query('page', 1);
+
+        $purchaseOrders = PoDetail::where('status', 1)
+            ->where('product_id', $productId)
+            ->select('date', 'amount', 'remark', 'rating', 'order', 'date_auto_order')
+            ->orderBy('id', 'desc') // Sort by id in descending order
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'purchase_orders' => $purchaseOrders->items(),
+            'pagination' => [
+                'total' => $purchaseOrders->total(),
+                'perPage' => $purchaseOrders->perPage(),
+                'currentPage' => $purchaseOrders->currentPage(),
+                'lastPage' => $purchaseOrders->lastPage(),
+            ],
+        ]);
+    }
+
+
 }

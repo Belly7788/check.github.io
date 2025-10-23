@@ -65,10 +65,32 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setIsEditMode(false);
-        setEditBranchId(null);
-        setFormData({ branch_name_en: "", branch_name_kh: "", remark: "" });
+        const hasChanges =
+            formData.branch_name_en ||
+            formData.branch_name_kh ||
+            formData.remark;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditBranchId(null);
+                    setFormData({ branch_name_en: "", branch_name_kh: "", remark: "" });
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsPopupOpen(false);
+            setIsEditMode(false);
+            setEditBranchId(null);
+            setFormData({ branch_name_en: "", branch_name_kh: "", remark: "" });
+        }
     };
 
     // Toggle row dropdown
@@ -121,7 +143,11 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
             router[method](url, formData, {
                 onSuccess: () => {
                     setIsSaving(false);
-                    closePopup();
+                    // Close popup without confirmation
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditBranchId(null);
+                    setFormData({ branch_name_en: "", branch_name_kh: "", remark: "" });
                     showSuccessAlert({
                         title: t("success"),
                         message: isEditMode ? t("branch_t.branch_updated_successfully") : t("branch_t.branch_created_successfully"),
@@ -264,8 +290,36 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
     // Handle ESC and click outside
     useEffect(() => {
         const handleEsc = (event) => {
-            if (event.key === "Escape") {
-                closePopup();
+            if (event.key === "Escape" && isPopupOpen) {
+                const hasChanges =
+                    formData.branch_name_en ||
+                    formData.branch_name_kh ||
+                    formData.remark;
+
+                if (hasChanges) {
+                    showConfirmAlert({
+                        title: t("confirm_close_title"),
+                        message: t("confirm_close_popup"),
+                        darkMode,
+                        onConfirm: () => {
+                            setIsPopupOpen(false);
+                            setIsEditMode(false);
+                            setEditBranchId(null);
+                            setFormData({ branch_name_en: "", branch_name_kh: "", remark: "" });
+                            setExpandedRow(null);
+                        },
+                        onCancel: () => {
+                            // Do nothing, keep the popup open
+                        },
+                    });
+                } else {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditBranchId(null);
+                    setFormData({ branch_name_en: "", branch_name_kh: "", remark: "" });
+                    setExpandedRow(null);
+                }
+            } else if (event.key === "Escape") {
                 setExpandedRow(null);
             }
         };
@@ -280,7 +334,7 @@ export default function BranchManager({ darkMode, branches, filters, flash }) {
             window.removeEventListener("keydown", handleEsc);
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [isPopupOpen, formData, darkMode, t]);
 
     useEffect(() => {
         const handleCtrlEnter = (event) => {

@@ -161,21 +161,58 @@ useEffect(() => {
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setIsEditMode(false);
-        setEditRoleId(null);
-        setFormData({
-            rolename: "",
-            desc: "",
-            permission_id: null,
-            sub_permission_id: null,
-            permission_ids: [],
-            sub_permission_ids: [],
-            check_permission_ids: [],
-        });
-        setFilteredSubPermissions([]);
-        setFilteredPermissionCheckboxes([]);
-        setFilteredSubPermissionCheckboxes([]);
+        const hasChanges =
+            formData.rolename ||
+            formData.desc ||
+            formData.permission_id ||
+            formData.sub_permission_id ||
+            formData.permission_ids.length > 0 ||
+            formData.sub_permission_ids.length > 0 ||
+            formData.check_permission_ids.length > 0;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditRoleId(null);
+                    setFormData({
+                        rolename: "",
+                        desc: "",
+                        permission_id: null,
+                        sub_permission_id: null,
+                        permission_ids: [],
+                        sub_permission_ids: [],
+                        check_permission_ids: [],
+                    });
+                    setFilteredSubPermissions([]);
+                    setFilteredPermissionCheckboxes([]);
+                    setFilteredSubPermissionCheckboxes([]);
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsPopupOpen(false);
+            setIsEditMode(false);
+            setEditRoleId(null);
+            setFormData({
+                rolename: "",
+                desc: "",
+                permission_id: null,
+                sub_permission_id: null,
+                permission_ids: [],
+                sub_permission_ids: [],
+                check_permission_ids: [],
+            });
+            setFilteredSubPermissions([]);
+            setFilteredPermissionCheckboxes([]);
+            setFilteredSubPermissionCheckboxes([]);
+        }
     };
 
     // Toggle row dropdown
@@ -231,7 +268,22 @@ useEffect(() => {
             router[method](url, formData, {
                 onSuccess: () => {
                     setIsSaving(false);
-                    closePopup();
+                    // Close popup without confirmation
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditRoleId(null);
+                    setFormData({
+                        rolename: "",
+                        desc: "",
+                        permission_id: null,
+                        sub_permission_id: null,
+                        permission_ids: [],
+                        sub_permission_ids: [],
+                        check_permission_ids: [],
+                    });
+                    setFilteredSubPermissions([]);
+                    setFilteredPermissionCheckboxes([]);
+                    setFilteredSubPermissionCheckboxes([]);
                     showSuccessAlert({
                         title: t("success"),
                         message: isEditMode ? t("role_updated_successfully") : t("role_created_successfully"),
@@ -437,11 +489,64 @@ useEffect(() => {
         });
     };
 
-    // Handle ESC and click outside
     useEffect(() => {
         const handleEsc = (event) => {
-            if (event.key === "Escape") {
-                closePopup();
+            if (event.key === "Escape" && isPopupOpen) {
+                const hasChanges =
+                    formData.rolename ||
+                    formData.desc ||
+                    formData.permission_id ||
+                    formData.sub_permission_id ||
+                    formData.permission_ids.length > 0 ||
+                    formData.sub_permission_ids.length > 0 ||
+                    formData.check_permission_ids.length > 0;
+
+                if (hasChanges) {
+                    showConfirmAlert({
+                        title: t("confirm_close_title"),
+                        message: t("confirm_close_popup"),
+                        darkMode,
+                        onConfirm: () => {
+                            setIsPopupOpen(false);
+                            setIsEditMode(false);
+                            setEditRoleId(null);
+                            setFormData({
+                                rolename: "",
+                                desc: "",
+                                permission_id: null,
+                                sub_permission_id: null,
+                                permission_ids: [],
+                                sub_permission_ids: [],
+                                check_permission_ids: [],
+                            });
+                            setFilteredSubPermissions([]);
+                            setFilteredPermissionCheckboxes([]);
+                            setFilteredSubPermissionCheckboxes([]);
+                            setExpandedRow(null);
+                        },
+                        onCancel: () => {
+                            // Do nothing, keep the popup open
+                        },
+                    });
+                } else {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditRoleId(null);
+                    setFormData({
+                        rolename: "",
+                        desc: "",
+                        permission_id: null,
+                        sub_permission_id: null,
+                        permission_ids: [],
+                        sub_permission_ids: [],
+                        check_permission_ids: [],
+                    });
+                    setFilteredSubPermissions([]);
+                    setFilteredPermissionCheckboxes([]);
+                    setFilteredSubPermissionCheckboxes([]);
+                    setExpandedRow(null);
+                }
+            } else if (event.key === "Escape") {
                 setExpandedRow(null);
             }
         };
@@ -456,7 +561,7 @@ useEffect(() => {
             window.removeEventListener("keydown", handleEsc);
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [isPopupOpen, formData, darkMode, t]);
 
     useEffect(() => {
         const handleCtrlEnter = (event) => {

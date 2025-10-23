@@ -21,8 +21,9 @@ const Clipboard = ({ children, darkMode, textToCopy }) => {
       {children}
       {showCopyIcon && (
         <button
-          onClick={handleCopy}
-          className={`absolute -right-5 top-1/2 -translate-y-1/2 p-1 rounded ${getDarkModeClass(
+            type="button"
+            onClick={handleCopy}
+            className={`absolute -right-5 top-1/2 -translate-y-1/2 p-1 rounded ${getDarkModeClass(
             darkMode, "text-gray-300 hover:text-white", "text-gray-500 hover:text-black"
         )}`}
           aria-label="Copy to clipboard"

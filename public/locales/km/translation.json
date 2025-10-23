@@ -28,6 +28,11 @@
     "Product_Management": "ការគ្រប់គ្រងផលិតផល",
     "No_Data_Available": "មិនមានទិន្នន័យទេ",
     "no_image": "គ្មានរូបភាព",
+    "confirm_close_title": "បញ្ជាក់ការបិទ",
+    "confirm_close_popup": "តើអ្នកប្រាកដថាចង់បិទ popup នេះទេ? រាល់ការផ្លាស់ប្តូរដែលមិនបានរក្សាទុកនឹងបាត់បង់។",
+    "payment_manages":"គ្រប់គ្រងការទូទាត់",
+    "after_sale":"បន្ទាប់ពីលក់",
+
 
     "product_created_successfully": "ផលិតផលបានបង្កើតជោគជ័យ!",
     "product_updated_successfully": "ផលិតផលបានធ្វើបច្ចុប្បន្នភាពជោគជ័យ!",
@@ -263,11 +268,12 @@
     },
 
     "list_pos": {
+        "purchase_order": "លិខិតបញ្ជាទិញ",
         "list_purchase_orders": "បញ្ជីការបញ្ជាទិញ",
         "search_placeholder": "ស្វែងរក...",
         "name": "ឈ្មោះ",
         "date": "កាលបរិច្ឆេទ",
-        "amount": "ចំនួនទឹកប្រាក់",
+        "amount": "ចំនួនផលតិផល",
         "remark": "កំណត់សម្គាល់",
         "rating": "ការវាយតម្លៃ",
         "order": "ការបញ្ជាទិញ",
@@ -310,6 +316,7 @@
         "pi_not_found": "រកមិនឃើញវិក័យប័ត្រ!",
         "download_complete": "ទាញយកជោគជ័យ!",
         "download_failed": "ទាញយកបរាជ័យ!",
+        "proforma_invoice": "វិក័យប័ត្របឋម",
         "downloading": "កំពុងទាញយក...",
         "reference_photos_fetch_failed": "បរាជ័យក្នុងការទាញរូបថតឯកសារយោង!",
         "product_details_fetch_failed": "បរាជ័យក្នុងការទាញព័ត៌មានលម្អិតផលិតផល!",
@@ -352,6 +359,10 @@
         "search_invoice_code": "ស្វែងរកតាមលេខវិក្កយបត្រ...",
         "search_name_invoice": "ស្វែងរកតាមឈ្មោះវិក្កយបត្រ...",
         "search_product": "ស្វែងរកតាមផលិតផល...",
+        "invoice_code_name": "កូដវិក្កយបត្រ និងឈ្មោះ",
+        "search_invoice_code_name": "ស្វែងរកកូដវិក្កយបត្រ ឬឈ្មោះ...",
+        "extra_charge": "ការចំណាយបន្ថែម",
+        "net_total": "សរុបសុទ្ធ",
 
 
         "edit_purchase_invoice": "កែសម្រួលវិក្កយបត្រទិញ",
@@ -642,6 +653,36 @@
         "company_payment_method_required" : "វិធីសាស្រ្តទូទាត់របស់ក្រុមហ៊ុនត្រូវបានទាមទារ !",
         "payment_approved_successfully" : "ការទូទាត់ត្រូវបានអនុម័តដោយជោគជ័យ !",
         "open_balance_by_company" : "បើកសមតុល្យដោយក្រុមហ៊ុន"
+    },
+
+    "cost": {
+        "wholesale_costing": "ការគណនាតម្លៃលក់ដុំ",
+        "wholesale_costing_list": "បញ្ជីការគណនាតម្លៃលក់ដុំ",
+        "our": "របស់យើង",
+        "customer": "អតិថិជន",
+        "result_check": "ការពិនិត្យលទ្ធផល",
+        "product_code": "កូដផលិតផល",
+        "product_name": "ឈ្មោះផលិតផល",
+        "supply_price": "តម្លៃផ្គត់ផ្គង់",
+        "promotion_pcs": "ចំនួនផលិតផលសម្រាប់ការផ្សព្វផ្សាយ",
+        "qty1": "បរិមាណ ១",
+        "qty2": "បរិមាណ ២",
+        "total_cost": "តម្លៃសរុប",
+        "our_profit": "ប្រាក់ចំណេញរបស់យើង",
+        "total_buy_shop": "តម្លៃទិញសរុបរបស់ហាង",
+        "total_bos_dom": "តម្លៃសរុប BOS DOM",
+        "customer_profit": "ប្រាក់ចំណេញរបស់អតិថិជន",
+        "price_per_pcs": "តម្លៃក្នុងមួយឯកតា",
+        "ten_pcs_price": "តម្លៃ ១០ ឯកតា",
+        "profit": "ប្រាក់ចំណេញ",
+        "status": "ស្ថានភាព",
+        "enter_supply_price": "បញ្ចូលតម្លៃផ្គត់ផ្គង់",
+        "enter_pcs": "បញ្ចូលចំនួនឯកតា",
+        "share_to_telegram": "ចែករំលែកទៅ Telegram",
+        "successfully_sent_to_telegram": "បានផ្ញើទៅ Telegram ដោយជោគជ័យ",
+        "failed_to_send_telegram": "បរាជ័យក្នុងការផ្ញើទៅ Telegram",
+        "fill_required_fields": "សូមបំពេញគ្រប់វាលដែលតម្រូវ",
+        "error": "កំហុស"
     }
 
 }

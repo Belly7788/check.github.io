@@ -425,6 +425,8 @@ useEffect(() => {
   // State for drag-and-drop and file uploads for reference_payment
 const [thumbnails, setThumbnails] = useState([]);
 const [thumbnailDragging, setThumbnailDragging] = useState(false);
+// Add to state declarations
+const thumbnailInputRef = useRef(null); // Reference for Reference Payment input
 
 
 // Format file name for display
@@ -506,6 +508,10 @@ const removeThumbnail = (index) => {
       );
     }
   });
+  // Reset the file input value to allow re-selection of the same file
+  if (thumbnailInputRef.current) {
+    thumbnailInputRef.current.value = null;
+  }
 };
 
   // Initialize company filters
@@ -1047,7 +1053,62 @@ const openEditPopup = async (payment) => {
 };
 
 // Update closePopup
-    const closePopup = () => {
+const closePopup = () => {
+    const hasChanges =
+        formData.tran_date !== new Date().toISOString().split('T')[0] ||
+        formData.number ||
+        formData.name ||
+        formData.amount ||
+        formData.open_balance ||
+        formData.payment_method ||
+        formData.company_id ||
+        formData.memo ||
+        formData.status !== 'Pending' ||
+        thumbnails.length > 0 ||
+        Object.keys(checkedItems).length > 0 ||
+        Object.keys(paymentAmounts).length > 0 ||
+        Object.keys(discountInputs).some(id => parseFloat(discountInputs[id]) > 0);
+
+    if (hasChanges) {
+        showConfirmAlert({
+            title: t("confirm_close_title"),
+            message: t("confirm_close_popup"),
+            darkMode,
+            onConfirm: () => {
+                setIsPopupOpen(false);
+                setCurrentPayment(null);
+                setIsEditMode(false);
+                setFormData({
+                    tran_type: 'Credit',
+                    tran_date: new Date().toISOString().split('T')[0],
+                    number: '',
+                    name: '',
+                    amount: '',
+                    open_balance: '',
+                    payment_method: '',
+                    company_id: '',
+                    memo: '',
+                    status: 'Pending',
+                });
+                setThumbnails([]);
+                setCheckedItems({});
+                setPaymentAmounts({});
+                setIsManualInput({});
+                setDiscountInputs({});
+                setDiscountTypes({});
+                setSelectedCompany(null);
+                setPiData([]);
+                setTableSearchQuery('');
+                setSubtotal(0);
+                setTotalDiscount(0);
+                setGeneratedPaymentNumber('');
+                setPaymentAprove(null);
+            },
+            onCancel: () => {
+                // Do nothing, keep the popup open
+            },
+        });
+    } else {
         setIsPopupOpen(false);
         setCurrentPayment(null);
         setIsEditMode(false);
@@ -1076,7 +1137,8 @@ const openEditPopup = async (payment) => {
         setTotalDiscount(0);
         setGeneratedPaymentNumber('');
         setPaymentAprove(null);
-    };
+    }
+};
 
     const [hasSavePermission, setHasSavePermission] = useState(false);
     const [hasConfirmPermission, setHasConfirmPermission] = useState(false);
@@ -1124,10 +1186,8 @@ const openEditPopup = async (payment) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Determine which permission to check based on isEditMode
         const permissionId = isEditMode ? update_payment : create_payment;
 
-        // Check permission before proceeding
         checkPermission(permissionId, async (hasPermission) => {
             if (!hasPermission) {
                 showErrorAlert({
@@ -1138,7 +1198,6 @@ const openEditPopup = async (payment) => {
                 return;
             }
 
-            // Validate required fields
             if (!formData.company_id || !formData.payment_method) {
                 showErrorAlert({
                     title: t("error"),
@@ -1148,7 +1207,6 @@ const openEditPopup = async (payment) => {
                 return;
             }
 
-            // Prepare payment details for all PI rows
             const paymentDetails = piData.map((pi) => {
                 const isChecked = checkedItems[pi.id] || false;
                 return {
@@ -1172,7 +1230,6 @@ const openEditPopup = async (payment) => {
 
             setIsSubmitting(true);
 
-            // Prepare form data for submission
             const submitData = new FormData();
             submitData.append('date', formData.tran_date);
             submitData.append('company_id', formData.company_id);
@@ -1181,7 +1238,6 @@ const openEditPopup = async (payment) => {
             submitData.append('memo', formData.memo || '');
             submitData.append('status', formData.status === 'Completed' ? '1' : '0');
 
-            // Append payment details
             paymentDetails.forEach((detail, index) => {
                 submitData.append(`payment_details[${index}][pi_id]`, detail.pi_id);
                 submitData.append(`payment_details[${index}][checkbox]`, detail.checkbox ?? '');
@@ -1193,7 +1249,6 @@ const openEditPopup = async (payment) => {
                 }
             });
 
-            // Append reference payment images
             const imagePromises = thumbnails
                 .filter((thumbnail) => !thumbnail.markedForDeletion && thumbnail.isNew)
                 .map(async (thumbnail, index) => {
@@ -1203,20 +1258,16 @@ const openEditPopup = async (payment) => {
                     submitData.append(`reference_payments[${index}]`, file);
                 });
 
-            // Append IDs of images marked for deletion
             const deletedImages = thumbnails
                 .filter((thumbnail) => thumbnail.markedForDeletion && !thumbnail.isNew)
                 .map((thumbnail) => thumbnail.id);
             submitData.append('deleted_images', JSON.stringify(deletedImages));
 
-            // Wait for all image processing to complete
             await Promise.all(imagePromises);
 
-            // Determine the route and method
             const route = isEditMode ? `/payment/update/${currentPayment.id}` : '/payment/create';
             const method = isEditMode ? 'post' : 'post';
 
-            // Submit form data using Inertia
             router[method](route, submitData, {
                 onSuccess: () => {
                     showSuccessAlert({
@@ -1227,7 +1278,35 @@ const openEditPopup = async (payment) => {
                         darkMode,
                         timeout: 3000,
                     });
-                    closePopup(); // This will clear all popup data
+                    // Close popup without confirmation
+                    setIsPopupOpen(false);
+                    setCurrentPayment(null);
+                    setIsEditMode(false);
+                    setFormData({
+                        tran_type: 'Credit',
+                        tran_date: new Date().toISOString().split('T')[0],
+                        number: '',
+                        name: '',
+                        amount: '',
+                        open_balance: '',
+                        payment_method: '',
+                        company_id: '',
+                        memo: '',
+                        status: 'Pending',
+                    });
+                    setThumbnails([]);
+                    setCheckedItems({});
+                    setPaymentAmounts({});
+                    setIsManualInput({});
+                    setDiscountInputs({});
+                    setDiscountTypes({});
+                    setSelectedCompany(null);
+                    setPiData([]);
+                    setTableSearchQuery('');
+                    setSubtotal(0);
+                    setTotalDiscount(0);
+                    setGeneratedPaymentNumber('');
+                    setPaymentAprove(null);
                 },
                 onError: (errors) => {
                     showErrorAlert({
@@ -1513,7 +1592,7 @@ const handleEntriesPerPageChange = (e) => {
       if (e.ctrlKey && e.key === 'Enter' && isPopupOpen) {
         handleSubmit(e);
       }
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isPopupOpen) {
         closePopup();
         if (isDatePopupOpen) {
           setIsDateAnimatingOut(true);
@@ -2869,6 +2948,7 @@ const handleEntriesPerPageChange = (e) => {
                                                 multiple
                                                 className="hidden"
                                                 id="thumbnail-input-col4"
+                                                ref={thumbnailInputRef} // Add ref to input
                                                 onChange={(e) => handleThumbnailChange(e.target.files)}
                                                 />
                                             </div>
@@ -3028,7 +3108,7 @@ const handleEntriesPerPageChange = (e) => {
                                         </div>
 
                                         {/* Enhanced Table with Scroll and Improved Design */}
-                                        <div className="overflow-auto max-h-[300px] custom-scrollbar">
+                                        <div className="relative overflow-x-auto h-[calc(100vh-14rem)] mx-auto custom-scrollbar">
                                             <table
                                                 className={`w-full border-collapse rounded-lg shadow-md ${getDarkModeClass(
                                                 darkMode,

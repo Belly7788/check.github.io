@@ -28,6 +28,10 @@
     "Product_Management": "产品管理",
     "No_Data_Available": "无可用数据",
     "no_image": "无图像",
+    "confirm_close_title": "确认关闭",
+    "confirm_close_popup": "您确定要关闭弹出窗口吗？任何未保存的更改都将丢失。",
+    "payment_manages":"付款管理",
+    "after_sale":"售后",
 
     "product_created_successfully": "产品创建成功！",
     "product_updated_successfully": "产品更新成功！",
@@ -261,6 +265,7 @@
         "list_purchase_orders": "采购订单列表",
         "search_placeholder": "搜索...",
         "name": "名称",
+        "purchase_order": "采购订单",
         "date": "日期",
         "amount": "数量",
         "remark": "备注",
@@ -303,6 +308,7 @@
         "pi_not_found": "未找到采购发票！",
         "download_complete": "下载成功完成！",
         "download_failed": "下载失败！",
+        "proforma_invoice": "形式发票",
         "downloading": "正在下载...",
         "reference_photos_fetch_failed": "无法获取参考照片！",
         "product_details_fetch_failed": "无法获取产品详情！",
@@ -345,6 +351,10 @@
         "search_invoice_code": "按发票编号搜索...",
         "search_name_invoice": "按发票名称搜索...",
         "search_product": "按产品搜索...",
+        "invoice_code_name": "发票代码与名称",
+        "search_invoice_code_name": "搜索发票代码或名称...",
+        "extra_charge": "额外费用",
+        "net_total": "净总额",
 
 
         "edit_purchase_invoice": "编辑采购发票",
@@ -636,6 +646,36 @@
         "company_payment_method_required" : "需要公司付款方式 !",
         "payment_approved_successfully" : "付款已成功批准 !",
         "open_balance_by_company" : "按公司划分的未结余额"
+    },
+
+    "cost": {
+        "wholesale_costing": "批发成本计算",
+        "wholesale_costing_list": "批发成本列表",
+        "our": "我们",
+        "customer": "客户",
+        "result_check": "结果检查",
+        "product_code": "产品代码",
+        "product_name": "产品名称",
+        "supply_price": "供应价格",
+        "promotion_pcs": "促销件数",
+        "qty1": "数量1",
+        "qty2": "数量2",
+        "total_cost": "总成本",
+        "our_profit": "我们的利润",
+        "total_buy_shop": "商店总购买",
+        "total_bos_dom": "总成本（BOS DOM）",
+        "customer_profit": "客户利润",
+        "price_per_pcs": "每件价格",
+        "ten_pcs_price": "十件价格",
+        "profit": "利润",
+        "status": "状态",
+        "enter_supply_price": "输入供应价格",
+        "enter_pcs": "输入件数",
+        "share_to_telegram": "分享到Telegram",
+        "successfully_sent_to_telegram": "成功发送到Telegram",
+        "failed_to_send_telegram": "无法发送到Telegram",
+        "fill_required_fields": "请填写所有必填字段",
+        "error": "错误"
     }
 
 

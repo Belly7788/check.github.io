@@ -1,13 +1,12 @@
 import { Link, Head, usePage, router } from "@inertiajs/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
-    FaDownload,
+    FaDownload, 
     FaPlus,
     FaFileExcel,
     FaFilePdf,
     FaEllipsisV,
 } from "react-icons/fa";
-// import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { getDarkModeClass } from "../../utils/darkModeUtils";
 import { useTranslation } from "react-i18next";
 import { showSuccessAlert } from "../../Component/SuccessAlert/SuccessAlert";
@@ -23,6 +22,7 @@ import TableLoading from "../../Component/Loading/TableLoading/TableLoading";
 import ShimmerLoading from "../../Component/Loading/ShimmerLoading/ShimmerLoading";
 import NoImageComponent from "../../Component/Empty/NotImage/NotImage";
 import { checkPermission } from '../../utils/permissionUtils';
+import ImageGallery from '../../BELLY/ImageGallery/ImageGallery';
 import axios from 'axios';
 
 import ExcelJS from 'exceljs';
@@ -73,6 +73,125 @@ export default function ProductList({ darkMode, products, pagination }) {
         HS_code: '',
     });
 
+
+// State declarations for Proforma Invoice and Purchase Order
+    const [piCurrentPage, setPiCurrentPage] = useState(1);
+    const [poCurrentPage, setPoCurrentPage] = useState(1);
+    const [piEntriesPerPage, setPiEntriesPerPage] = useState(10);
+    const [poEntriesPerPage, setPoEntriesPerPage] = useState(10);
+    const [proformaInvoices, setProformaInvoices] = useState([]);
+    const [purchaseOrders, setPurchaseOrders] = useState([]);
+    const [piPagination, setPiPagination] = useState({ total: 0, perPage: 10, currentPage: 1, lastPage: 1 });
+    const [poPagination, setPoPagination] = useState({ total: 0, perPage: 10, currentPage: 1, lastPage: 1 });
+    const [piLoading, setPiLoading] = useState(false);
+    const [poLoading, setPoLoading] = useState(false);
+
+    // Pagination handlers for Proforma Invoice
+    const handlePiPageChange = (page) => {
+        setPiCurrentPage(page);
+        fetchProformaInvoices(page, piEntriesPerPage);
+    };
+
+    const handlePiEntriesPerPageChange = (e) => {
+        const newEntriesPerPage = Number(e.target.value);
+        setPiEntriesPerPage(newEntriesPerPage);
+        setPiCurrentPage(1);
+        fetchProformaInvoices(1, newEntriesPerPage);
+    };
+
+    // Pagination handlers for Purchase Order
+    const handlePoPageChange = (page) => {
+        setPoCurrentPage(page);
+        fetchPurchaseOrders(page, poEntriesPerPage);
+    };
+
+    const handlePoEntriesPerPageChange = (e) => {
+        const newEntriesPerPage = Number(e.target.value);
+        setPoEntriesPerPage(newEntriesPerPage);
+        setPoCurrentPage(1);
+        fetchPurchaseOrders(1, newEntriesPerPage);
+    };
+
+    // Fetch Proforma Invoices
+    const fetchProformaInvoices = (page, perPage) => {
+        if (expandedRow !== null) {
+            const productId = products[expandedRow].id;
+            setPiLoading(true);
+            axios.get(`/product/proforma-invoices/${productId}`, {
+                params: { page, perPage }
+            })
+                .then(response => {
+                    setProformaInvoices(response.data.proforma_invoices);
+                    setPiPagination(response.data.pagination);
+                    setPiLoading(false);
+                })
+                .catch(error => {
+                    console.error('Error fetching proforma invoices:', error);
+                    showErrorAlert({
+                        title: t("error"),
+                        message: t("failed_to_fetch_proforma_invoices"),
+                        darkMode,
+                    });
+                    setPiLoading(false);
+                });
+        }
+    };
+
+    // Fetch Purchase Orders
+    const fetchPurchaseOrders = (page, perPage) => {
+        if (expandedRow !== null) {
+            const productId = products[expandedRow].id;
+            setPoLoading(true);
+            axios.get(`/product/purchase-orders/${productId}`, {
+                params: { page, perPage }
+            })
+                .then(response => {
+                    setPurchaseOrders(response.data.purchase_orders);
+                    setPoPagination(response.data.pagination);
+                    setPoLoading(false);
+                })
+                .catch(error => {
+                    console.error('Error fetching purchase orders:', error);
+                    showErrorAlert({
+                        title: t("error"),
+                        message: t("failed_to_fetch_purchase_orders"),
+                        darkMode,
+                    });
+                    setPoLoading(false);
+                });
+        }
+    };
+
+    // Add this helper function near your other helper functions (e.g., formatFileName, formatFileSize)
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    };
+
+    const renderStars = (rating) => {
+
+        const stars = [];
+        for (let i = 1; i <= 5; i++) {
+            stars.push(
+            <svg
+                key={i}
+                className={`w-5 h-5 ${i <= rating ? (darkMode ? 'text-[#facc15]' : 'text-black') : 'text-gray-300'}`}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            );
+        }
+        return stars;
+    };
+
     // Helper functions (unchanged from your original code)
     const formatFileName = (name) => {
         if (name.length > 10) {
@@ -111,7 +230,6 @@ export default function ProductList({ darkMode, products, pagination }) {
         const currentThumbnailCount = thumbnails.length;
         const newFiles = Array.from(files);
 
-        // Check if adding new files will exceed the limit
         if (currentThumbnailCount + newFiles.length > 50) {
             showErrorAlert({
                 title: t("error"),
@@ -134,6 +252,10 @@ export default function ProductList({ darkMode, products, pagination }) {
 
         setThumbnails(prev => [...newThumbnails, ...prev]);
 
+        if (thumbnailInputRef.current) {
+            thumbnailInputRef.current.value = null;
+        }
+
         newThumbnails.forEach((thumbnail, index) => {
             let progress = 0;
             const interval = setInterval(() => {
@@ -155,7 +277,6 @@ export default function ProductList({ darkMode, products, pagination }) {
         const currentVideoCount = videos.length;
         const newFiles = Array.from(files);
 
-        // Check if adding new files will exceed the limit
         if (currentVideoCount + newFiles.length > 50) {
             showErrorAlert({
                 title: t("error"),
@@ -176,6 +297,10 @@ export default function ProductList({ darkMode, products, pagination }) {
         }));
 
         setVideos(prev => [...newVideos, ...prev]);
+
+        if (videoInputRef.current) {
+            videoInputRef.current.value = null;
+        }
 
         newVideos.forEach((video, index) => {
             const videoElement = document.createElement('video');
@@ -236,6 +361,24 @@ export default function ProductList({ darkMode, products, pagination }) {
         });
     };
 
+    const handleVideoDrop = (e) => {
+        e.preventDefault();
+        setVideoDragging(false);
+        const files = e.dataTransfer.files;
+
+        const currentVideoCount = videos.length;
+        if (currentVideoCount + files.length > 50) {
+            showErrorAlert({
+                title: t("error"),
+                message: t("max_video_limit_exceeded", { limit: 50 }),
+                darkMode,
+            });
+            return;
+        }
+
+        handleVideoChange(files);
+    };
+
     const handleFileInput = (e) => {
         const file = e.target.files[0];
         handleImageChange(file);
@@ -266,30 +409,21 @@ export default function ProductList({ darkMode, products, pagination }) {
         handleThumbnailChange(files);
     };
 
-    const handleVideoDrop = (e) => {
-        e.preventDefault();
-        setVideoDragging(false);
-        const files = e.dataTransfer.files;
-
-        const currentVideoCount = videos.length;
-        if (currentVideoCount + files.length > 50) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("max_video_limit_exceeded", { limit: 50 }),
-                darkMode,
-            });
-            return;
-        }
-
-        handleVideoChange(files);
-    };
+    const thumbnailInputRef = useRef(null);
+    const videoInputRef = useRef(null);
 
     const removeThumbnail = (index) => {
         setThumbnails(prev => prev.filter((_, i) => i !== index));
+        if (thumbnailInputRef.current) {
+            thumbnailInputRef.current.value = null;
+        }
     };
 
     const removeVideo = (index) => {
         setVideos(prev => prev.filter((_, i) => i !== index));
+        if (videoInputRef.current) {
+            videoInputRef.current.value = null;
+        }
     };
 
     const handleDragOver = (e) => {
@@ -410,9 +544,59 @@ export default function ProductList({ darkMode, products, pagination }) {
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setCurrentProduct(null);
-        setIsEditMode(false);
+        // Check if there are any changes in the form
+        const hasChanges =
+            formData.product_code ||
+            formData.name_kh ||
+            formData.name_en ||
+            formData.name_cn ||
+            formData.declare ||
+            formData.HS_code ||
+            defaultImage ||
+            thumbnails.length > 0 ||
+            videos.length > 0;
+
+        // Skip confirm alert if submission was successful
+        if (isSubmittingSuccessfully) {
+            setIsSubmittingSuccessfully(false); // Reset the flag
+            setIsPopupOpen(false);
+            setCurrentProduct(null);
+            setIsEditMode(false);
+            return;
+        }
+
+        // If there are changes and not submitting successfully, show confirmation alert
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setCurrentProduct(null);
+                    setIsEditMode(false);
+                    setFormData({
+                        product_code: '',
+                        name_kh: '',
+                        name_en: '',
+                        name_cn: '',
+                        declare: '',
+                        HS_code: '',
+                    });
+                    setDefaultImage(null);
+                    setThumbnails([]);
+                    setVideos([]);
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            // If no changes, close the popup directly
+            setIsPopupOpen(false);
+            setCurrentProduct(null);
+            setIsEditMode(false);
+        }
     };
 
     const toggleDownloadDropdown = () => setIsDownloadOpen(!isDownloadOpen);
@@ -448,117 +632,174 @@ export default function ProductList({ darkMode, products, pagination }) {
         });
     }, []);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const [isSubmittingSuccessfully, setIsSubmittingSuccessfully] = useState(false);
 
-        const permissionId = isEditMode ? update_product : create_product;
+const handleSubmit = (e) => {
+    e.preventDefault();
 
-        checkPermission(permissionId, (hasPermission) => {
-            if (!hasPermission) {
-                showErrorAlert({
-                    title: t("error"),
-                    message: t("you_do_not_have_permission"),
-                    darkMode,
-                });
-                return;
+    const permissionId = isEditMode ? update_product : create_product;
+
+    checkPermission(permissionId, (hasPermission) => {
+        if (!hasPermission) {
+            showErrorAlert({
+                title: t("error"),
+                message: t("you_do_not_have_permission"),
+                darkMode,
+            });
+            return;
+        }
+
+        const textFields = [
+            formData.product_code,
+            formData.name_kh,
+            formData.name_en,
+            formData.name_cn,
+            formData.declare,
+            formData.HS_code,
+        ].filter(field => field && field.trim() !== '');
+
+        if (textFields.length === 0) {
+            showErrorAlert({
+                title: t("error"),
+                message: t("please_enter_at_least_one_field"),
+                darkMode,
+            });
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        const form = new FormData();
+        form.append('product_code', formData.product_code || '');
+        form.append('name_kh', formData.name_kh || '');
+        form.append('name_en', formData.name_en || '');
+        form.append('name_cn', formData.name_cn || '');
+        form.append('declare', formData.declare || '');
+        form.append('HS_code', formData.HS_code || '');
+
+        if (defaultImage && defaultImage.startsWith('data:')) {
+            const file = dataURLtoFile(defaultImage, 'default_image.png');
+            form.append('default_image', file);
+        } else if (defaultImage && isEditMode) {
+            form.append('existing_default_image', defaultImage.replace('/storage/', ''));
+        }
+
+        thumbnails.forEach((thumbnail, index) => {
+            if (thumbnail.file && !thumbnail.markedForDeletion) {
+                form.append(`thumbnails[${index}]`, thumbnail.file);
+            } else if (thumbnail.preview && isEditMode && !thumbnail.markedForDeletion) {
+                form.append(`existing_thumbnails[${index}]`, thumbnail.preview.replace('/storage/', ''));
             }
+        });
 
-            const textFields = [
-                formData.product_code,
-                formData.name_kh,
-                formData.name_en,
-                formData.name_cn,
-                formData.declare,
-                formData.HS_code,
-            ].filter(field => field && field.trim() !== '');
-
-            if (textFields.length === 0) {
-                showErrorAlert({
-                    title: t("error"),
-                    message: t("please_enter_at_least_one_field"),
-                    darkMode,
-                });
-                return;
+        videos.forEach((video, index) => {
+            if (video.file && !video.markedForDeletion) {
+                form.append(`videos[${index}]`, video.file);
+            } else if (video.videoUrl && isEditMode && !video.markedForDeletion) {
+                form.append(`existing_videos[${index}]`, video.videoUrl.replace('/storage/', ''));
             }
+        });
 
-            setIsSubmitting(true);
-
-            const form = new FormData();
-            form.append('product_code', formData.product_code || '');
-            form.append('name_kh', formData.name_kh || '');
-            form.append('name_en', formData.name_en || '');
-            form.append('name_cn', formData.name_cn || '');
-            form.append('declare', formData.declare || '');
-            form.append('HS_code', formData.HS_code || '');
-
-            if (defaultImage && defaultImage.startsWith('data:')) {
-                const file = dataURLtoFile(defaultImage, 'default_image.png');
-                form.append('default_image', file);
-            } else if (defaultImage && isEditMode) {
-                form.append('existing_default_image', defaultImage.replace('/storage/', ''));
-            }
-
+        if (isEditMode) {
             thumbnails.forEach((thumbnail, index) => {
-                if (thumbnail.file && !thumbnail.markedForDeletion) {
-                    form.append(`thumbnails[${index}]`, thumbnail.file);
-                } else if (thumbnail.preview && isEditMode && !thumbnail.markedForDeletion) {
-                    form.append(`existing_thumbnails[${index}]`, thumbnail.preview.replace('/storage/', ''));
+                if (thumbnail.markedForDeletion && !thumbnail.isNew) {
+                    form.append(`deleted_thumbnails[${index}]`, thumbnail.id);
                 }
             });
 
             videos.forEach((video, index) => {
-                if (video.file && !video.markedForDeletion) {
-                    form.append(`videos[${index}]`, video.file);
-                } else if (video.videoUrl && isEditMode && !video.markedForDeletion) {
-                    form.append(`existing_videos[${index}]`, video.videoUrl.replace('/storage/', ''));
+                if (video.markedForDeletion && !video.isNew) {
+                    form.append(`deleted_videos[${index}]`, video.id);
                 }
             });
+        }
 
-            if (isEditMode) {
-                thumbnails.forEach((thumbnail, index) => {
-                    if (thumbnail.markedForDeletion && !thumbnail.isNew) {
-                        form.append(`deleted_thumbnails[${index}]`, thumbnail.id);
-                    }
+        const method = isEditMode ? 'post' : 'post';
+        const url = isEditMode ? `/product/${currentProduct.id}` : '/product';
+
+        if (isEditMode) {
+            form.append('_method', 'PUT');
+        }
+
+        router.post(url, form, {
+            forceFormData: true,
+            onSuccess: (page) => {
+                setIsSubmitting(false);
+                setIsSubmittingSuccessfully(true);
+                setIsPopupOpen(false);
+                setCurrentProduct(null);
+                setIsEditMode(false);
+                setFormData({
+                    product_code: '',
+                    name_kh: '',
+                    name_en: '',
+                    name_cn: '',
+                    declare: '',
+                    HS_code: '',
                 });
+                setDefaultImage(null);
+                setThumbnails([]);
+                setVideos([]);
 
-                videos.forEach((video, index) => {
-                    if (video.markedForDeletion && !video.isNew) {
-                        form.append(`deleted_videos[${index}]`, video.id);
+                // Refresh photo and video tabs if the row is expanded
+                if (expandedRow !== null) {
+                    const productId = products[expandedRow].id;
+                    if (activeTab === 'photo') {
+                        setPhotosLoading(true);
+                        axios.get(`/product/images/${productId}`)
+                            .then(response => {
+                                setPhotos(response.data.map(img => `/storage/${img}`));
+                                setCurrentPhotoIndex(0);
+                                setPhotosLoading(false);
+                            })
+                            .catch(error => {
+                                console.error('Error fetching images:', error);
+                                showErrorAlert({
+                                    title: t("error"),
+                                    message: t("failed_to_fetch_images"),
+                                    darkMode,
+                                });
+                                setPhotosLoading(false);
+                            });
+                    } else if (activeTab === 'video') {
+                        setVideosLoading(true);
+                        axios.get(`/product/videos/${productId}`)
+                            .then(response => {
+                                setVideosData(response.data.map(vid => `/storage/${vid}`));
+                                setCurrentVideoIndex(0);
+                                setVideosLoading(false);
+                            })
+                            .catch(error => {
+                                console.error('Error fetching videos:', error);
+                                showErrorAlert({
+                                    title: t("error"),
+                                    message: t("failed_to_fetch_videos"),
+                                    darkMode,
+                                });
+                                setVideosLoading(false);
+                            });
                     }
+                }
+
+                showSuccessAlert({
+                    title: t("success"),
+                    message: isEditMode ? t("product_updated_successfully") : t("product_created_successfully"),
+                    darkMode,
+                    timeout: 3000,
                 });
-            }
-
-            const method = isEditMode ? 'post' : 'post';
-            const url = isEditMode ? `/product/${currentProduct.id}` : '/product';
-
-            if (isEditMode) {
-                form.append('_method', 'PUT');
-            }
-
-            router.post(url, form, {
-                forceFormData: true,
-                onSuccess: () => {
-                    setIsSubmitting(false);
-                    closePopup();
-                    showSuccessAlert({
-                        title: t("success"),
-                        message: isEditMode ? t("product_updated_successfully") : t("product_created_successfully"),
-                        darkMode,
-                        timeout: 3000,
-                    });
-                },
-                onError: (errors) => {
-                    setIsSubmitting(false);
-                    const errorMessage = t("the_product_code_has_already_been_taken");
-                    showErrorAlert({
-                        title: t("error"),
-                        message: errorMessage,
-                        darkMode,
-                    });
-                },
-            });
+            },
+            onError: (errors) => {
+                setIsSubmitting(false);
+                const errorMessage = t("the_product_code_has_already_been_taken");
+                showErrorAlert({
+                    title: t("error"),
+                    message: errorMessage,
+                    darkMode,
+                });
+            },
         });
-    };
+    });
+};
 
     const delete_product = 13;
     const handleDelete = (id) => {
@@ -723,6 +964,10 @@ export default function ProductList({ darkMode, products, pagination }) {
                         });
                         setVideosLoading(false);
                     });
+            } else if (activeTab === 'proforma_invoice') {
+                fetchProformaInvoices(piCurrentPage, piEntriesPerPage);
+            } else if (activeTab === 'purchase_order') {
+                fetchPurchaseOrders(poCurrentPage, poEntriesPerPage);
             }
         }
     }, [expandedRow, activeTab]);
@@ -1104,7 +1349,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                 </button>
                                 {isDownloadOpen && (
                                     <div
-                                        className={`absolute mt-1 w-48 rounded-lg shadow-lg z-20 ${getDarkModeClass(
+                                        className={`absolute mt-1 w-48 rounded-lg shadow-lg z-30 ${getDarkModeClass(
                                             darkMode,
                                             "bg-[#2D2D2D] text-gray-200",
                                             "bg-white text-gray-900"
@@ -1181,7 +1426,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                         )}`}
                                     >
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1190,7 +1435,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("photo")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1199,7 +1444,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("code")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1208,7 +1453,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("name_kh")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1217,7 +1462,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("name_en")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1226,7 +1471,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("name_cn")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1235,7 +1480,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("declare")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1244,7 +1489,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                             {t("hs_code")}
                                         </th>
                                         <th
-                                            className={`p-3 text-left sticky top-0 z-10 ${getDarkModeClass(
+                                            className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
                                                 darkMode,
                                                 "bg-[#2D2D2D] text-gray-300",
                                                 "bg-[#ff8800] text-white"
@@ -1537,7 +1782,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                                                         "bg-gray-100 text-gray-900"
                                                                     )}`}
                                                                 >
-                                                                    <div className="flex">
+                                                                    <div className="flex space-x-4">
                                                                         <button
                                                                             onClick={() => setActiveTab("photo")}
                                                                             className={`px-4 py-2 font-semibold ${
@@ -1558,204 +1803,431 @@ export default function ProductList({ darkMode, products, pagination }) {
                                                                         >
                                                                             {t("videos")}
                                                                         </button>
+                                                                        <button
+                                                                            onClick={() => setActiveTab("proforma_invoice")}
+                                                                            className={`px-4 py-2 font-semibold uppercase ${
+                                                                                activeTab === "proforma_invoice"
+                                                                                    ? "border-b-2 border-[#ff8800] text-[#ff8800]"
+                                                                                    : "text-gray-500 hover:text-[#ff8800]"
+                                                                            }`}
+                                                                        >
+                                                                            {t("list_pis.proforma_invoice")}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setActiveTab("purchase_order")}
+                                                                            className={`px-4 py-2 font-semibold​ uppercase ${
+                                                                                activeTab === "purchase_order"
+                                                                                    ? "border-b-2 border-[#ff8800] text-[#ff8800]"
+                                                                                    : "text-gray-500 hover:text-[#ff8800]"
+                                                                            }`}
+                                                                        >
+                                                                            {t("list_pos.purchase_order")}
+                                                                        </button>
                                                                     </div>
                                                                     <div className="mt-6">
                                                                         {activeTab === "photo" && (
-                                                                            <div className="relative w-full max-w-3xl mx-auto">
+                                                                            <div className="relative w-full max-w-5xl mx-auto">
                                                                                 {photosLoading ? (
                                                                                     <ShimmerLoading
                                                                                         darkMode={darkMode}
                                                                                         width="100%"
-                                                                                        height="256px"
+                                                                                        height="400px"
                                                                                         borderRadius="12px"
                                                                                         rowCount={1}
                                                                                         colCount={1}
                                                                                     />
                                                                                 ) : photos.length > 0 ? (
-                                                                                    <div className="relative p-5 overflow-hidden rounded-xl">
-                                                                                        <div className="relative overflow-hidden rounded-xl">
-                                                                                            <div
-                                                                                                className="flex transition-transform duration-500 ease-in-out"
-                                                                                                style={{ transform: `translateX(-${currentPhotoIndex * 100}%)` }}
-                                                                                            >
-                                                                                                {photos.map((photo, idx) => (
-                                                                                                    <img
-                                                                                                        key={`photo-${idx}`}
-                                                                                                        src={photo}
-                                                                                                        data-kheng-chetra={`belly-gallery-product-thumbnail-${product.id}`}
-                                                                                                        className="w-full h-64 object-contain flex-shrink-0"
-                                                                                                        loading="lazy"
-                                                                                                    />
-                                                                                                ))}
-                                                                                            </div>
-                                                                                            <button
-                                                                                                onClick={handlePrevPhoto}
-                                                                                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 hover:bg-opacity-100 text-gray-800 p-3 rounded-full shadow-md transition-all duration-200 hover:scale-110 z-10"
-                                                                                            >
-                                                                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                                                                                </svg>
-                                                                                            </button>
-                                                                                            <button
-                                                                                                onClick={handleNextPhoto}
-                                                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 hover:bg-opacity-100 text-gray-800 p-3 rounded-full shadow-md transition-all duration-200 hover:scale-110 z-10"
-                                                                                            >
-                                                                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                                                                                </svg>
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-1 ${getDarkModeClass(darkMode, 'bg-gray-800 bg-opacity-75', 'bg-white bg-opacity-75')} p-1 rounded-full shadow-md`}>
-                                                                                            {photos.length <= 5 ? (
-                                                                                                photos.map((_, idx) => (
-                                                                                                    <button
-                                                                                                        key={`dot-${idx}`}
-                                                                                                        onClick={() => setCurrentPhotoIndex(idx)}
-                                                                                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                            darkMode,
-                                                                                                            currentPhotoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                            currentPhotoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                        )}`}
-                                                                                                    />
-                                                                                                ))
-                                                                                            ) : (
-                                                                                                <>
-                                                                                                    <button
-                                                                                                        onClick={() => setCurrentPhotoIndex(0)}
-                                                                                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                            darkMode,
-                                                                                                            currentPhotoIndex === 0 ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                            currentPhotoIndex === 0 ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                        )}`}
-                                                                                                    />
-                                                                                                    {Array.from({ length: photos.length }, (_, idx) => idx).slice(
-                                                                                                        Math.max(1, currentPhotoIndex - 1),
-                                                                                                        Math.min(photos.length - 1, currentPhotoIndex + 2)
-                                                                                                    ).map(idx => (
-                                                                                                        <button
-                                                                                                            key={`dot-${idx}`}
-                                                                                                            onClick={() => setCurrentPhotoIndex(idx)}
-                                                                                                            className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                                darkMode,
-                                                                                                                currentPhotoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                                currentPhotoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                            )}`}
-                                                                                                        />
-                                                                                                    ))}
-                                                                                                    <button
-                                                                                                        onClick={() => setCurrentPhotoIndex(photos.length - 1)}
-                                                                                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                            darkMode,
-                                                                                                            currentPhotoIndex === photos.length - 1 ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                            currentPhotoIndex === photos.length - 1 ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                        )}`}
-                                                                                                    />
-                                                                                                </>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    </div>
+                                                                                    <ImageGallery
+                                                                                        media={photos.map((photo, idx) => ({
+                                                                                            id: `photo-${idx}`,
+                                                                                            src: photo,
+                                                                                            alt: `Product Image ${idx + 1}`,
+                                                                                        }))}
+                                                                                        darkMode={darkMode}
+                                                                                    />
                                                                                 ) : (
                                                                                     <NoDataComponent darkMode={darkMode} />
                                                                                 )}
                                                                             </div>
                                                                         )}
                                                                         {activeTab === "video" && (
-                                                                            <div className="relative w-full max-w-3xl mx-auto">
+                                                                            <div className="relative w-full max-w-5xl mx-auto">
                                                                                 {videosLoading ? (
                                                                                     <ShimmerLoading
                                                                                         darkMode={darkMode}
                                                                                         width="100%"
-                                                                                        height="256px"
+                                                                                        height="400px"
                                                                                         borderRadius="12px"
                                                                                         rowCount={1}
                                                                                         colCount={1}
                                                                                     />
                                                                                 ) : videosData.length > 0 ? (
-                                                                                    <div className="relative p-5 overflow-hidden rounded-xl">
-                                                                                        <div className="relative overflow-hidden rounded-xl">
-                                                                                            <div
-                                                                                                className="flex transition-transform duration-500 ease-in-out"
-                                                                                                style={{ transform: `translateX(-${currentVideoIndex * 100}%)` }}
-                                                                                            >
-                                                                                                {videosData.map((video, idx) => (
-                                                                                                    <video
-                                                                                                        key={`video-${idx}`}
-                                                                                                        src={video}
-                                                                                                        controls
-                                                                                                        className="w-full h-64 object-contain flex-shrink-0"
-                                                                                                        loading="lazy"
-                                                                                                    />
-                                                                                                ))}
-                                                                                            </div>
-                                                                                            <button
-                                                                                                onClick={handlePrevVideo}
-                                                                                                className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 hover:bg-opacity-100 text-gray-800 p-3 rounded-full shadow-md transition-all duration-200 hover:scale-110 z-10"
-                                                                                            >
-                                                                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                                                                                </svg>
-                                                                                            </button>
-                                                                                            <button
-                                                                                                onClick={handleNextVideo}
-                                                                                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-75 hover:bg-opacity-100 text-gray-800 p-3 rounded-full shadow-md transition-all duration-200 hover:scale-110 z-10"
-                                                                                            >
-                                                                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                                                                                </svg>
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 flex space-x-1 ${getDarkModeClass(darkMode, 'bg-gray-800 bg-opacity-75', 'bg-white bg-opacity-75')} p-1 rounded-full shadow-md`}>
-                                                                                            {videosData.length <= 5 ? (
-                                                                                                videosData.map((_, idx) => (
-                                                                                                    <button
-                                                                                                        key={`video-dot-${idx}`}
-                                                                                                        onClick={() => setCurrentVideoIndex(idx)}
-                                                                                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                            darkMode,
-                                                                                                            currentVideoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                            currentVideoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                        )}`}
-                                                                                                    />
-                                                                                                ))
-                                                                                            ) : (
-                                                                                                <>
-                                                                                                    <button
-                                                                                                        onClick={() => setCurrentVideoIndex(0)}
-                                                                                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                            darkMode,
-                                                                                                            currentVideoIndex === 0 ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                            currentVideoIndex === 0 ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                        )}`}
-                                                                                                    />
-                                                                                                    {Array.from({ length: videosData.length }, (_, idx) => idx).slice(
-                                                                                                        Math.max(1, currentVideoIndex - 1),
-                                                                                                        Math.min(videosData.length - 1, currentVideoIndex + 2)
-                                                                                                    ).map(idx => (
-                                                                                                        <button
-                                                                                                            key={`video-dot-${idx}`}
-                                                                                                            onClick={() => setCurrentVideoIndex(idx)}
-                                                                                                            className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                                darkMode,
-                                                                                                                currentVideoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                                currentVideoIndex === idx ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                            )}`}
-                                                                                                        />
-                                                                                                    ))}
-                                                                                                    <button
-                                                                                                        onClick={() => setCurrentVideoIndex(videosData.length - 1)}
-                                                                                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${getDarkModeClass(
-                                                                                                            darkMode,
-                                                                                                            currentVideoIndex === videosData.length - 1 ? 'bg-[#ff8800] scale-125' : 'bg-gray-600',
-                                                                                                            currentVideoIndex === videosData.length - 1 ? 'bg-[#ff8800] scale-125' : 'bg-gray-400'
-                                                                                                        )}`}
-                                                                                                    />
-                                                                                                </>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    </div>
+                                                                                    <ImageGallery
+                                                                                        media={videosData.map((video, idx) => ({
+                                                                                            id: `video-${idx}`,
+                                                                                            src: video,
+                                                                                            alt: `Product Video ${idx + 1}`,
+                                                                                        }))}
+                                                                                        darkMode={darkMode}
+                                                                                    />
                                                                                 ) : (
                                                                                     <NoDataComponent darkMode={darkMode} />
                                                                                 )}
+                                                                            </div>
+                                                                        )}
+                                                                        {activeTab === "proforma_invoice" && (
+                                                                            <div className="relative w-full mx-auto">
+                                                                                <div className="relative overflow-x-auto rounded-lg text-sm h-[calc(100vh-25rem)] custom-scrollbar">
+                                                                                    <div className="w-full min-w-max">
+                                                                                        <table className="w-full border-collapse">
+                                                                                            <thead>
+                                                                                                <tr
+                                                                                                    className={`uppercase ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] border-b border-gray-700",
+                                                                                                        "bg-[#ff8800]"
+                                                                                                    )}`}
+                                                                                                >
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.invoice_code")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.date")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.ship_by")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("method")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.receipt_number")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.tracking_number")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.ar_date")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pis.delivered")}
+                                                                                                    </th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            {piLoading ? (
+                                                                                                <TableLoading darkMode={darkMode} rowCount={piEntriesPerPage} colCount={8} />
+                                                                                            ) : (
+                                                                                                <tbody>
+                                                                                                    {proformaInvoices.length === 0 ? (
+                                                                                                        <tr>
+                                                                                                            <td colSpan="8">
+                                                                                                                <NoDataComponent darkMode={darkMode} />
+                                                                                                            </td>
+                                                                                                        </tr>
+                                                                                                    ) : (
+                                                                                                        proformaInvoices.map((pi) => (
+                                                                                                            <tr
+                                                                                                                key={pi.pi_number}
+                                                                                                                className={`border-b ${getDarkModeClass(
+                                                                                                                    darkMode,
+                                                                                                                    "bg-[#1A1A1A] text-gray-300 border-gray-700 hover:bg-[#2D2D2D]",
+                                                                                                                    "bg-gray-50 text-gray-900 border-gray-200 hover:bg-gray-100"
+                                                                                                                )}`}
+                                                                                                            >
+                                                                                                                <td className="p-3">
+                                                                                                                    {pi.pi_number ? (
+                                                                                                                        <Clipboard darkMode={darkMode} textToCopy={pi.pi_number}>
+                                                                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                                                                <span
+                                                                                                                                    className={`label-Purple ${getDarkModeClass(
+                                                                                                                                        darkMode,
+                                                                                                                                        "label-Purple-darkmode",
+                                                                                                                                        ""
+                                                                                                                                    )}`}
+                                                                                                                                    data-belly-caption={pi.pi_number}
+                                                                                                                                >
+                                                                                                                                    {pi.pi_number.length > 15
+                                                                                                                                        ? `${pi.pi_number.substring(0, 12)}...`
+                                                                                                                                        : pi.pi_number}
+                                                                                                                                </span>
+                                                                                                                            </Bellypopover>
+                                                                                                                        </Clipboard>
+                                                                                                                    ) : (
+                                                                                                                        ""
+                                                                                                                    )}
+                                                                                                                </td>
+                                                                                                                <td className="p-3">{formatDate(pi.date)}</td>
+                                                                                                                <td className="p-3">
+                                                                                                                    {pi.ship_by ? (
+                                                                                                                        <Clipboard darkMode={darkMode} textToCopy={pi.ship_by}>
+                                                                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                                                                <span
+                                                                                                                                    className={`label-green ${getDarkModeClass(
+                                                                                                                                        darkMode,
+                                                                                                                                        "label-green-darkmode",
+                                                                                                                                        ""
+                                                                                                                                    )}`}
+                                                                                                                                    data-belly-caption={pi.ship_by}
+                                                                                                                                >
+                                                                                                                                    {pi.ship_by.length > 15
+                                                                                                                                        ? `${pi.ship_by.substring(0, 12)}...`
+                                                                                                                                        : pi.ship_by}
+                                                                                                                                </span>
+                                                                                                                            </Bellypopover>
+                                                                                                                        </Clipboard>
+                                                                                                                    ) : (
+                                                                                                                        ""
+                                                                                                                    )}
+                                                                                                                </td>
+                                                                                                                <td className="p-3">
+                                                                                                                    {pi.method ? (
+                                                                                                                        <Clipboard darkMode={darkMode} textToCopy={pi.method}>
+                                                                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                                                                <span
+                                                                                                                                    className={`label-orange ${getDarkModeClass(
+                                                                                                                                        darkMode,
+                                                                                                                                        "label-orange-darkmode",
+                                                                                                                                        ""
+                                                                                                                                    )}`}
+                                                                                                                                    data-belly-caption={pi.method}
+                                                                                                                                >
+                                                                                                                                    {pi.method.length > 15
+                                                                                                                                        ? `${pi.method.substring(0, 12)}...`
+                                                                                                                                        : pi.method}
+                                                                                                                                </span>
+                                                                                                                            </Bellypopover>
+                                                                                                                        </Clipboard>
+                                                                                                                    ) : (
+                                                                                                                        ""
+                                                                                                                    )}
+                                                                                                                </td>
+                                                                                                                <td className="p-3">
+                                                                                                                    {pi.reference_number ? (
+                                                                                                                        <Clipboard darkMode={darkMode} textToCopy={pi.reference_number}>
+                                                                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                                                                <span
+                                                                                                                                    className={`label-blue ${getDarkModeClass(
+                                                                                                                                        darkMode,
+                                                                                                                                        "label-blue-darkmode",
+                                                                                                                                        ""
+                                                                                                                                    )}`}
+                                                                                                                                    data-belly-caption={pi.reference_number}
+                                                                                                                                >
+                                                                                                                                    {pi.reference_number.length > 15
+                                                                                                                                        ? `${pi.reference_number.substring(0, 12)}...`
+                                                                                                                                        : pi.reference_number}
+                                                                                                                                </span>
+                                                                                                                            </Bellypopover>
+                                                                                                                        </Clipboard>
+                                                                                                                    ) : (
+                                                                                                                        ""
+                                                                                                                    )}
+                                                                                                                </td>
+                                                                                                                <td className="p-3">
+                                                                                                                    {pi.tracking_number ? (
+                                                                                                                        <Clipboard darkMode={darkMode} textToCopy={pi.tracking_number}>
+                                                                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                                                                <span
+                                                                                                                                    className={`label-pink ${getDarkModeClass(
+                                                                                                                                        darkMode,
+                                                                                                                                        "label-pink-darkmode",
+                                                                                                                                        ""
+                                                                                                                                    )}`}
+                                                                                                                                    data-belly-caption={pi.tracking_number}
+                                                                                                                                >
+                                                                                                                                    {pi.tracking_number.length > 15
+                                                                                                                                        ? `${pi.tracking_number.substring(0, 12)}...`
+                                                                                                                                        : pi.tracking_number}
+                                                                                                                                </span>
+                                                                                                                            </Bellypopover>
+                                                                                                                        </Clipboard>
+                                                                                                                    ) : (
+                                                                                                                        ""
+                                                                                                                    )}
+                                                                                                                </td>
+                                                                                                                <td className="p-3">{formatDate(pi.arrival_date)}</td>
+                                                                                                                <td className="p-3">{formatDate(pi.delivered_date)}</td>
+                                                                                                            </tr>
+                                                                                                        ))
+                                                                                                    )}
+                                                                                                </tbody>
+                                                                                            )}
+                                                                                        </table>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <Pagination
+                                                                                    darkMode={darkMode}
+                                                                                    currentPage={piCurrentPage}
+                                                                                    totalEntries={piPagination.total}
+                                                                                    entriesPerPage={piEntriesPerPage}
+                                                                                    onPageChange={handlePiPageChange}
+                                                                                    onEntriesPerPageChange={handlePiEntriesPerPageChange}
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                        {activeTab === "purchase_order" && (
+                                                                            <div className="relative w-full mx-auto">
+                                                                                <div className="relative overflow-x-auto rounded-lg text-sm h-[calc(100vh-25rem)] custom-scrollbar">
+                                                                                    <div className="w-full min-w-max">
+                                                                                        <table className="w-full border-collapse">
+                                                                                            <thead>
+                                                                                                <tr
+                                                                                                    className={`uppercase ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] border-b border-gray-700",
+                                                                                                        "bg-[#ff8800]"
+                                                                                                    )}`}
+                                                                                                >
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pos.date")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pos.amount")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pos.remark")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pos.rating")}
+                                                                                                    </th>
+                                                                                                    <th className={`p-3 text-left sticky top-0 z-20 ${getDarkModeClass(
+                                                                                                        darkMode,
+                                                                                                        "bg-[#181717] text-gray-300",
+                                                                                                        "bg-[#ff8800] text-white"
+                                                                                                    )}`}>
+                                                                                                        {t("list_pos.order")}
+                                                                                                    </th>
+                                                                                                </tr>
+                                                                                            </thead>
+                                                                                            {poLoading ? (
+                                                                                                <TableLoading darkMode={darkMode} rowCount={poEntriesPerPage} colCount={5} />
+                                                                                            ) : (
+                                                                                                <tbody>
+                                                                                                    {purchaseOrders.length === 0 ? (
+                                                                                                        <tr>
+                                                                                                            <td colSpan="5">
+                                                                                                                <NoDataComponent darkMode={darkMode} />
+                                                                                                            </td>
+                                                                                                        </tr>
+                                                                                                    ) : (
+                                                                                                        purchaseOrders.map((po, index) => (
+                                                                                                            <tr
+                                                                                                                key={index}
+                                                                                                                className={`border-b ${getDarkModeClass(
+                                                                                                                    darkMode,
+                                                                                                                    "bg-[#1A1A1A] text-gray-300 border-gray-700 hover:bg-[#2D2D2D]",
+                                                                                                                    "bg-gray-50 text-gray-900 border-gray-200 hover:bg-gray-100"
+                                                                                                                )}`}
+                                                                                                            >
+                                                                                                                <td className="p-3">{formatDate(po.date)}</td>
+                                                                                                                <td className="p-3">{po.amount}</td>
+                                                                                                                <td className="p-3">
+                                                                                                                    {po.remark ? (
+                                                                                                                        <Clipboard darkMode={darkMode} textToCopy={po.remark}>
+                                                                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                                                                <span
+                                                                                                                                    className={`label-pink ${getDarkModeClass(
+                                                                                                                                        darkMode,
+                                                                                                                                        "label-pink-darkmode",
+                                                                                                                                        ""
+                                                                                                                                    )}`}
+                                                                                                                                    data-belly-caption={po.remark}
+                                                                                                                                >
+                                                                                                                                    {po.remark.length > 20
+                                                                                                                                        ? `${po.remark.substring(0, 17)}...`
+                                                                                                                                        : po.remark}
+                                                                                                                                </span>
+                                                                                                                            </Bellypopover>
+                                                                                                                        </Clipboard>
+                                                                                                                    ) : (
+                                                                                                                        ""
+                                                                                                                    )}
+                                                                                                                </td>
+                                                                                                                <td className="p-3">
+                                                                                                                    <div className="flex">{renderStars(po.rating)}</div>
+                                                                                                                </td>
+                                                                                                                <td className="p-3">
+                                                                                                                    <div className="flex flex-col items-start">
+                                                                                                                        <input
+                                                                                                                            type="checkbox"
+                                                                                                                            checked={po.order === 1}
+                                                                                                                            className={`custom-checkbox ${getDarkModeClass(
+                                                                                                                                darkMode,
+                                                                                                                                "custom-checkbox-border-darkmode",
+                                                                                                                                "custom-checkbox-border"
+                                                                                                                            )}`}
+                                                                                                                        />
+                                                                                                                        {po.date_auto_order && (
+                                                                                                                            <span className="text-xs mt-1 text-gray-500">
+                                                                                                                                {formatDate(po.date_auto_order)}
+                                                                                                                            </span>
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                </td>
+                                                                                                            </tr>
+                                                                                                        ))
+                                                                                                    )}
+                                                                                                </tbody>
+                                                                                            )}
+                                                                                        </table>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <Pagination
+                                                                                    darkMode={darkMode}
+                                                                                    currentPage={poCurrentPage}
+                                                                                    totalEntries={poPagination.total}
+                                                                                    entriesPerPage={poEntriesPerPage}
+                                                                                    onPageChange={handlePoPageChange}
+                                                                                    onEntriesPerPageChange={handlePoEntriesPerPageChange}
+                                                                                />
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -2136,7 +2608,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                                 "text-gray-700"
                                             )}`}
                                         >
-                                            {t("list_pis.reference_images")}
+                                            {t("thumbnail_images")}
                                         </label>
                                         <div
                                             onDrop={handleThumbnailDrop}
@@ -2189,6 +2661,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                                 multiple
                                                 className="hidden"
                                                 id="thumbnail-input-col4"
+                                                ref={thumbnailInputRef}
                                                 onChange={(e) => handleThumbnailChange(e.target.files)}
                                             />
                                         </div>
@@ -2382,6 +2855,7 @@ export default function ProductList({ darkMode, products, pagination }) {
                                                 multiple
                                                 className="hidden"
                                                 id="video-input"
+                                                ref={videoInputRef}
                                                 onChange={(e) => handleVideoChange(e.target.files)}
                                             />
                                         </div>

@@ -22,7 +22,7 @@ const resources = {
       resources,
       lng: isFirstVisit ? 'en' : (savedLanguage || 'en'), // Force English on first visit
       fallbackLng: 'en',
-      debug: true,
+      debug: false,
       interpolation: {
         escapeValue: false,
       },

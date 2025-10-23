@@ -63,10 +63,29 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setIsEditMode(false);
-        setEditCompanyId(null);
-        setFormData({ company_name: "", remark: "" });
+        const hasChanges = formData.company_name || formData.remark;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditCompanyId(null);
+                    setFormData({ company_name: "", remark: "" });
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsPopupOpen(false);
+            setIsEditMode(false);
+            setEditCompanyId(null);
+            setFormData({ company_name: "", remark: "" });
+        }
     };
 
     // Toggle row dropdown
@@ -117,7 +136,11 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
             router[method](url, formData, {
                 onSuccess: () => {
                     setIsSaving(false);
-                    closePopup();
+                    // Close popup without confirmation
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditCompanyId(null);
+                    setFormData({ company_name: "", remark: "" });
                     showSuccessAlert({
                         title: t("success"),
                         message: isEditMode ? t("company_t.company_updated_successfully") : t("company_t.company_created_successfully"),
@@ -261,23 +284,50 @@ export default function CompanyManager({ darkMode, companies, filters, flash }) 
     // Handle ESC and click outside
     useEffect(() => {
         const handleEsc = (event) => {
-            if (event.key === "Escape") {
-                closePopup();
+            if (event.key === "Escape" && isPopupOpen) {
+                const hasChanges = formData.company_name || formData.remark;
+
+                if (hasChanges) {
+                    showConfirmAlert({
+                        title: t("confirm_close_title"),
+                        message: t("confirm_close_popup"),
+                        darkMode,
+                        onConfirm: () => {
+                            setIsPopupOpen(false);
+                            setIsEditMode(false);
+                            setEditCompanyId(null);
+                            setFormData({ company_name: "", remark: "" });
+                            setExpandedRow(null);
+                        },
+                        onCancel: () => {
+                            // Do nothing, keep the popup open
+                        },
+                    });
+                } else {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditCompanyId(null);
+                    setFormData({ company_name: "", remark: "" });
+                    setExpandedRow(null);
+                }
+            } else if (event.key === "Escape") {
                 setExpandedRow(null);
             }
         };
+
         const handleClickOutside = (event) => {
             if (!event.target.closest(".action-container")) {
                 setOpenActionDropdown(null);
             }
         };
+
         window.addEventListener("keydown", handleEsc);
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             window.removeEventListener("keydown", handleEsc);
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [isPopupOpen, formData.company_name, formData.remark, darkMode, t]);
 
     useEffect(() => {
         const handleCtrlEnter = (event) => {

@@ -28,6 +28,10 @@
     "Product_Management": "Product Management",
     "No_Data_Available": "No Data Available",
     "no_image": "No Image",
+    "confirm_close_title": "Confirm Close",
+    "confirm_close_popup": "Are you sure you want to close the popup? Any unsaved changes will be lost.",
+    "payment_manages":"Payment-Manage",
+    "after_sale":"After-Sale",
 
     "product_created_successfully": "Product created successfully!",
     "product_updated_successfully": "Product updated successfully!",
@@ -259,6 +263,7 @@
     "list_pos": {
         "list_purchase_orders": "List Purchase Orders",
         "search_placeholder": "Search...",
+        "purchase_order": "Purchase order",
         "name": "Name",
         "date": "Date",
         "amount": "Amount",
@@ -302,6 +307,7 @@
         "pi_not_found": "Purchase invoice not found!",
         "download_complete": "Download completed successfully!",
         "download_failed": "Download failed!",
+        "proforma_invoice": "Proforma invoice",
         "downloading": "Downloading...",
         "reference_photos_fetch_failed": "Failed to fetch reference photos!",
         "product_details_fetch_failed": "Failed to fetch product details!",
@@ -344,6 +350,10 @@
         "search_invoice_code": "Search by Invoice Code...",
         "search_name_invoice": "Search by Invoice Name...",
         "search_product": "Search by Product...",
+        "invoice_code_name": "Invoice Code & Name",
+        "search_invoice_code_name": "Search Invoice Code or Name...",
+        "extra_charge": "Extra Charge",
+        "net_total": "Net Total",
 
 
         "edit_purchase_invoice": "Edit Purchase Invoice",
@@ -636,7 +646,36 @@
         "company_payment_method_required" : "company payment method required !",
         "payment_approved_successfully" : "payment approved successfully !",
         "open_balance_by_company" : "open balance by company"
+    },
 
+    "cost": {
+        "wholesale_costing": "Wholesale Costing",
+        "wholesale_costing_list": "Wholesale Costing List",
+        "our": "Our",
+        "customer": "Customer",
+        "result_check": "Result Check",
+        "product_code": "Product Code",
+        "product_name": "Product Name",
+        "supply_price": "Supply Price",
+        "promotion_pcs": "Promotion Pieces",
+        "qty1": "Quantity 1",
+        "qty2": "Quantity 2",
+        "total_cost": "Total Cost",
+        "our_profit": "Our Profit",
+        "total_buy_shop": "Total Buy Shop",
+        "total_bos_dom": "Total BOS DOM",
+        "customer_profit": "Customer Profit",
+        "price_per_pcs": "Price Per Piece",
+        "ten_pcs_price": "Ten Pieces Price",
+        "profit": "Profit",
+        "status": "Status",
+        "enter_supply_price": "Enter Supply Price",
+        "enter_pcs": "Enter Pieces",
+        "share_to_telegram": "Share to Telegram",
+        "successfully_sent_to_telegram": "Successfully sent to Telegram",
+        "failed_to_send_telegram": "Failed to send to Telegram",
+        "fill_required_fields": "Please fill all required fields",
+        "error": "Error"
     }
 
 

@@ -372,10 +372,57 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setCurrentPO(null);
-        setIsEditMode(false);
-        setFormData({ amount: '', remark: '', rating: 0 });
+        // Check if there are any changes in the form
+        const hasChanges =
+            formData.amount ||
+            formData.remark ||
+            formData.rating > 0;
+
+        // Skip confirm alert if submission was successful
+        if (isSubmittingSuccessfully) {
+            setIsSubmittingSuccessfully(false); // Reset the flag
+            setIsPopupOpen(false);
+            setCurrentPO(null);
+            setIsEditMode(false);
+            setFormData({
+                amount: '',
+                remark: '',
+                rating: 0,
+            });
+            return;
+        }
+
+        // If there are changes and not submitting successfully, show confirmation alert
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setCurrentPO(null);
+                    setIsEditMode(false);
+                    setFormData({
+                        amount: '',
+                        remark: '',
+                        rating: 0,
+                    });
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            // If no changes, close the popup directly
+            setIsPopupOpen(false);
+            setCurrentPO(null);
+            setIsEditMode(false);
+            setFormData({
+                amount: '',
+                remark: '',
+                rating: 0,
+            });
+        }
     };
 
 
@@ -401,6 +448,8 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
 
 
     const update_po = 17;
+    const [isSubmittingSuccessfully, setIsSubmittingSuccessfully] = useState(false);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         checkPermission(update_po, async (hasPermission) => {
@@ -425,7 +474,15 @@ export default function ListPO({ darkMode, purchaseOrders, filters }) {
             router.put(`/po/${currentPO.id}`, formData, {
                 onSuccess: () => {
                     setIsSubmitting(false);
-                    closePopup();
+                    setIsSubmittingSuccessfully(true); // Set flag to true
+                    setIsPopupOpen(false); // Close popup directly
+                    setCurrentPO(null);
+                    setIsEditMode(false);
+                    setFormData({
+                        amount: '',
+                        remark: '',
+                        rating: 0,
+                    });
                     showSuccessAlert({
                         title: t("success"),
                         message: t("list_pos.po_updated_successfully"),

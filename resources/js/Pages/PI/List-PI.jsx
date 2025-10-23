@@ -90,7 +90,7 @@ export default function ListPI({ darkMode, purchaseInvoices, companies = [], shi
     const [isLoading, setIsLoading] = useState(false);
     const [selectedPIs, setSelectedPIs] = useState([]);
     const [isSelectOpen, setIsSelectOpen] = useState(false);
-    const [selectedSearchField, setSelectedSearchField] = useState("Pi_Number");
+    const [selectedSearchField, setSelectedSearchField] = useState("Invoice_Code_Name");
     const [formData, setFormData] = useState({
         pi_number: '',
         pi_name_en: '',
@@ -172,458 +172,503 @@ export default function ListPI({ darkMode, purchaseInvoices, companies = [], shi
     const [activeTab, setActiveTab] = useState('product');
 
     // Add to state declarations
-const [isLoadingdelivery, setIsLoadingdelivery] = useState(false);
-const [isLoadingUncheck, setIsLoadingUncheck] = useState(false);
-const [loadingDeliveryMap, setLoadingDeliveryMap] = useState({});
-const [isDeliveryPopupOpen, setIsDeliveryPopupOpen] = useState(false);
-const [currentProductIndex, setCurrentProductIndex] = useState(null);
-const [deliveryFormData, setDeliveryFormData] = useState({
-    cargo_date: '',
-    note_receipt: '',
-    receipt_pictures: [],
-    receipt_products: [],
-    pi_id: '',
-});
-const [receiptPicturesDragging, setReceiptPicturesDragging] = useState(false);
-const [receiptProductsDragging, setReceiptProductsDragging] = useState(false);
+    const thumbnailInputRef = useRef(null); // Reference for Reference Images input
+    const receiptProductsInputRef = useRef(null); // Reference for Receipt Products input
+    const receiptPicturesInputRef = useRef(null); // Reference for Receipt Pictures input
 
-const handleReceiptPicturesChange = (files, type) => {
-    const newImages = Array.from(files).map((file) => ({
-        id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: file.name,
-        size: file.size,
-        preview: URL.createObjectURL(file),
-        file: file,
-        loading: true,
-        progress: 0,
-        isNew: true,
-        markedForDeletion: false,
-        uploadStartTime: Date.now(),
-        estimatedTime: null,
-    }));
-
-    setDeliveryFormData((prev) => ({
-        ...prev,
-        [type]: [...newImages, ...prev[type]],
-    }));
-
-    newImages.forEach((image) => {
-        const uploadInterval = setInterval(() => {
-            setDeliveryFormData((prev) => {
-                const updatedImages = [...prev[type]];
-                const imgIndex = updatedImages.findIndex((t) => t.id === image.id);
-                if (imgIndex !== -1) {
-                    const newProgress = Math.min(updatedImages[imgIndex].progress + 10, 100);
-                    const elapsed = (Date.now() - updatedImages[imgIndex].uploadStartTime) / 1000;
-                    const remaining = (100 - newProgress) * (elapsed / newProgress);
-
-                    updatedImages[imgIndex] = {
-                        ...updatedImages[imgIndex],
-                        progress: newProgress,
-                        estimatedTime: remaining > 0 ? Math.round(remaining) : null,
-                    };
-
-                    if (newProgress === 100) {
-                        updatedImages[imgIndex].loading = false;
-                    }
-                }
-                return { ...prev, [type]: updatedImages };
-            });
-        }, 300);
-
-        return () => clearInterval(uploadInterval);
-    });
-};
-
-const handleReceiptImageDrop = (e, type) => {
-    e.preventDefault();
-    if (type === 'receipt_pictures') {
-        setReceiptPicturesDragging(false);
-    } else {
-        setReceiptProductsDragging(false);
-    }
-    const files = e.dataTransfer.files;
-    handleReceiptPicturesChange(files, type);
-};
-
-const removeReceiptImage = (index, type) => {
-    setDeliveryFormData((prev) => {
-        const image = prev[type][index];
-        if (image.isNew) {
-            return {
-                ...prev,
-                [type]: prev[type].filter((_, i) => i !== index),
-            };
-        } else {
-            const updatedImages = [...prev[type]];
-            updatedImages[index] = {
-                ...image,
-                markedForDeletion: !image.markedForDeletion,
-            };
-            return { ...prev, [type]: updatedImages };
-        }
-    });
-};
-
-const openDeliveryPopup = async (productId) => {
-    try {
-        // Set loading state for this specific product
-        setLoadingDeliveryMap((prev) => ({
-            ...prev,
-            [productId]: true,
-        }));
-        const response = await axios.get(`/api/pi-detail/${productId}`);
-        const piDetail = response.data.data;
-
-        const formatImages = (imageString, type) => {
-            if (!imageString) return [];
-            return imageString.split(',').map((img) => ({
-                id: img,
-                name: img,
-                size: 0,
-                preview: `/storage/uploads/${type}/${img}`,
-                loading: false,
-                progress: 100,
-                isNew: false,
-                markedForDeletion: false,
-            }));
-        };
-
-        setDeliveryFormData({
-            pi_id: piDetail.pi_id || '',
-            delivery: piDetail.delivery || '',
-            cargo_date: piDetail.cargo_date || '',
-            note_receipt: piDetail.note_receipt || '',
-            receipt_pictures: formatImages(piDetail.receipt_picture, 'receipt_picture'),
-            receipt_products: formatImages(piDetail.receipt_product, 'receipt_product'),
-        });
-
-        setCurrentProductIndex(productId);
-        setIsDeliveryPopupOpen(true);
-    } catch (error) {
-        console.error('Error fetching delivery details:', error);
-        showErrorAlert({
-            title: t('error'),
-            message: t('list_pis.delivery_details_fetch_failed'),
-            darkMode: darkMode,
-        });
-    } finally {
-        // Clear loading state for this specific product
-        setLoadingDeliveryMap((prev) => ({
-            ...prev,
-            [productId]: false,
-        }));
-    }
-};
-
-const uncheck_tracking_pi = 26;
-const handleUncheck = async () => {
-    checkPermission(uncheck_tracking_pi, async (hasPermission) => {
-        if (!hasPermission) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("you_do_not_have_permission"),
-                darkMode,
-            });
-            return;
-        }
-        try {
-            setIsLoadingUncheck(true); // Set loading state for Uncheck button
-
-            const formData = new FormData();
-            formData.append('delivery', '0');
-            formData.append('cargo_date', '');
-            formData.append('note_receipt', '');
-            formData.append('receipt_pictures_to_keep', '[]');
-            formData.append('receipt_products_to_keep', '[]');
-
-            await axios.post(`/api/pi-detail/update/${currentProductIndex}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            // Refresh product details using deliveryFormData.pi_id
-            if (deliveryFormData.pi_id) {
-                await refreshProductDetails(deliveryFormData.pi_id);
-            }
-
-            // Refresh the /pi/list route with current query parameters
-            const queryParams = {
-                page: currentPage, // Preserve the current page
-                per_page: entriesPerPage,
-                search: searchQuery,
-                search_field: selectedSearchField,
-                sort_field: sortField || 'id',
-                sort_direction: sortDirection || 'desc',
-            };
-
-            // Include filters only if they are not default
-            if (checkedCompanies.length !== companies.length) {
-                queryParams.companies = checkedCompanies;
-            }
-            if (checkedMethods.length !== methods.length) {
-                queryParams.methods = checkedMethods;
-            }
-            if (checkedShipments.length !== shipments.length) {
-                queryParams.shipments = checkedShipments;
-            }
-            if (startDate) {
-                queryParams.start_date = startDate;
-            }
-            if (endDate) {
-                queryParams.end_date = endDate;
-            }
-            if (startArrivalDate) {
-                queryParams.start_arrival_date = startArrivalDate;
-            }
-            if (endArrivalDate) {
-                queryParams.end_arrival_date = endArrivalDate;
-            }
-            if (tNumberSearch) {
-                queryParams.t_number = tNumberSearch;
-            }
-            if (rNumberSearch) {
-                queryParams.r_number = rNumberSearch;
-            }
-            if (trackingStatuses.length !== 4) {
-                queryParams.tracking_statuses = trackingStatuses;
-            }
-
-            router.get(
-                '/pi/list',
-                queryParams,
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true, // Use replace to avoid adding to browser history
-                    onSuccess: (page) => {
-                        setData(page.props.purchaseInvoices.data);
-                        setPagination({
-                            currentPage: page.props.purchaseInvoices.current_page,
-                            perPage: page.props.purchaseInvoices.per_page,
-                            total: page.props.purchaseInvoices.total,
-                        });
-                    },
-                    onError: (errors) => {
-                        console.error('Error refreshing list:', errors);
-                        showErrorAlert({
-                            title: t('error'),
-                            message: t('list_pis.list_refresh_failed'),
-                            darkMode: darkMode,
-                        });
-                    },
-                }
-            );
-
-            setDeliveryFormData({
-                delivery: '0',
-                cargo_date: '',
-                note_receipt: '',
-                receipt_pictures: [],
-                receipt_products: []
-            });
-
-            showSuccessAlert({
-                title: t('success'),
-                message: t('list_pis.data_cleared_successfully'),
-                darkMode: darkMode,
-                timeout: 2000,
-            });
-
-            closeDeliveryPopup();
-        } catch (error) {
-            console.error('Error clearing delivery data:', error);
-            showErrorAlert({
-                title: t('error'),
-                message: t('list_pis.data_clear_failed'),
-                darkMode: darkMode,
-            });
-        } finally {
-            setIsLoadingUncheck(false); // Clear loading state for Uncheck button
-        }
-    });
-};
-
-
-const check_tracking_pi = 25;
-const handleDeliverySubmit = async (e) => {
-    e.preventDefault();
-    checkPermission(check_tracking_pi, async (hasPermission) => {
-        if (!hasPermission) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("you_do_not_have_permission"),
-                darkMode,
-            });
-            return;
-        }
-        setIsLoadingdelivery(true);
-
-        try {
-            if (!deliveryFormData.cargo_date) {
-                showErrorAlert({
-                    title: t('error'),
-                    message: t('list_pis.cargo_date_required'),
-                    darkMode: darkMode,
-                });
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('delivery', '1');
-            formData.append('cargo_date', deliveryFormData.cargo_date);
-            formData.append('note_receipt', deliveryFormData.note_receipt);
-
-            const receiptPicturesToKeep = deliveryFormData.receipt_pictures
-                .filter(img => !img.markedForDeletion && !img.isNew)
-                .map(img => img.id);
-            formData.append('receipt_pictures_to_keep', JSON.stringify(receiptPicturesToKeep));
-
-            deliveryFormData.receipt_pictures
-                .filter(img => img.isNew && !img.markedForDeletion)
-                .forEach((file, index) => {
-                    formData.append(`receipt_pictures[${index}]`, file.file);
-                });
-
-            const receiptProductsToKeep = deliveryFormData.receipt_products
-                .filter(img => !img.markedForDeletion && !img.isNew)
-                .map(img => img.id);
-            formData.append('receipt_products_to_keep', JSON.stringify(receiptProductsToKeep));
-
-            deliveryFormData.receipt_products
-                .filter(img => img.isNew && !img.markedForDeletion)
-                .forEach((file, index) => {
-                    formData.append(`receipt_products[${index}]`, file.file);
-                });
-
-            await axios.post(`/api/pi-detail/update/${currentProductIndex}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            // Refresh product details using deliveryFormData.pi_id
-            if (deliveryFormData.pi_id) {
-                await refreshProductDetails(deliveryFormData.pi_id);
-            }
-
-            // Refresh the /pi/list route with current query parameters
-            const queryParams = {
-                page: currentPage, // Preserve the current page
-                per_page: entriesPerPage,
-                search: searchQuery,
-                search_field: selectedSearchField,
-                sort_field: sortField || 'id',
-                sort_direction: sortDirection || 'desc',
-            };
-
-            // Include filters only if they are not default
-            if (checkedCompanies.length !== companies.length) {
-                queryParams.companies = checkedCompanies;
-            }
-            if (checkedMethods.length !== methods.length) {
-                queryParams.methods = checkedMethods;
-            }
-            if (checkedShipments.length !== shipments.length) {
-                queryParams.shipments = checkedShipments;
-            }
-            if (startDate) {
-                queryParams.start_date = startDate;
-            }
-            if (endDate) {
-                queryParams.end_date = endDate;
-            }
-            if (startArrivalDate) {
-                queryParams.start_arrival_date = startArrivalDate;
-            }
-            if (endArrivalDate) {
-                queryParams.end_arrival_date = endArrivalDate;
-            }
-            if (tNumberSearch) {
-                queryParams.t_number = tNumberSearch;
-            }
-            if (rNumberSearch) {
-                queryParams.r_number = rNumberSearch;
-            }
-            if (trackingStatuses.length !== 4) {
-                queryParams.tracking_statuses = trackingStatuses;
-            }
-
-            router.get(
-                '/pi/list',
-                queryParams,
-                {
-                    preserveState: true,
-                    preserveScroll: true,
-                    replace: true, // Use replace to avoid adding to browser history
-                    onSuccess: (page) => {
-                        setData(page.props.purchaseInvoices.data);
-                        setPagination({
-                            currentPage: page.props.purchaseInvoices.current_page,
-                            perPage: page.props.purchaseInvoices.per_page,
-                            total: page.props.purchaseInvoices.total,
-                        });
-                    },
-                    onError: (errors) => {
-                        console.error('Error refreshing list:', errors);
-                        showErrorAlert({
-                            title: t('error'),
-                            message: t('list_pis.list_refresh_failed'),
-                            darkMode: darkMode,
-                        });
-                    },
-                }
-            );
-
-            showSuccessAlert({
-                title: t('success'),
-                message: t('list_pis.delivery_updated_successfully'),
-                darkMode: darkMode,
-                timeout: 2000,
-            });
-
-            closeDeliveryPopup();
-        } catch (error) {
-            console.error('Error updating delivery:', error);
-            showErrorAlert({
-                title: t('error'),
-                message: t('list_pis.delivery_update_failed'),
-                darkMode: darkMode,
-            });
-        } finally {
-            setIsLoadingdelivery(false);
-        }
-    });
-};
-
-const refreshProductDetails = async (piId) => {
-    try {
-        const response = await axios.get(`/pi/${piId}/product-details`);
-        setProductData(prev => ({
-            ...prev,
-            [piId]: response.data.productDetails
-        }));
-    } catch (error) {
-        console.error('Error refreshing product details:', error);
-        showErrorAlert({
-            title: t('error'),
-            message: t('list_pis.product_details_fetch_failed'),
-            darkMode: darkMode,
-        });
-    }
-};
-
-const closeDeliveryPopup = () => {
-    setIsDeliveryPopupOpen(false);
-    setCurrentProductIndex(null);
-    setDeliveryFormData({
+    // Add to state declarations
+    const [isLoadingdelivery, setIsLoadingdelivery] = useState(false);
+    const [isLoadingUncheck, setIsLoadingUncheck] = useState(false);
+    const [loadingDeliveryMap, setLoadingDeliveryMap] = useState({});
+    const [isDeliveryPopupOpen, setIsDeliveryPopupOpen] = useState(false);
+    const [currentProductIndex, setCurrentProductIndex] = useState(null);
+    const [deliveryFormData, setDeliveryFormData] = useState({
         cargo_date: '',
         note_receipt: '',
         receipt_pictures: [],
         receipt_products: [],
+        pi_id: '',
     });
-};
+    const [receiptPicturesDragging, setReceiptPicturesDragging] = useState(false);
+    const [receiptProductsDragging, setReceiptProductsDragging] = useState(false);
+
+    const handleReceiptPicturesChange = (files, type) => {
+        const newImages = Array.from(files).map((file) => ({
+            id: `new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            size: file.size,
+            preview: URL.createObjectURL(file),
+            file: file,
+            loading: true,
+            progress: 0,
+            isNew: true,
+            markedForDeletion: false,
+            uploadStartTime: Date.now(),
+            estimatedTime: null,
+        }));
+
+        setDeliveryFormData((prev) => ({
+            ...prev,
+            [type]: [...newImages, ...prev[type]],
+        }));
+
+        newImages.forEach((image) => {
+            const uploadInterval = setInterval(() => {
+                setDeliveryFormData((prev) => {
+                    const updatedImages = [...prev[type]];
+                    const imgIndex = updatedImages.findIndex((t) => t.id === image.id);
+                    if (imgIndex !== -1) {
+                        const newProgress = Math.min(updatedImages[imgIndex].progress + 10, 100);
+                        const elapsed = (Date.now() - updatedImages[imgIndex].uploadStartTime) / 1000;
+                        const remaining = (100 - newProgress) * (elapsed / newProgress);
+
+                        updatedImages[imgIndex] = {
+                            ...updatedImages[imgIndex],
+                            progress: newProgress,
+                            estimatedTime: remaining > 0 ? Math.round(remaining) : null,
+                        };
+
+                        if (newProgress === 100) {
+                            updatedImages[imgIndex].loading = false;
+                        }
+                    }
+                    return { ...prev, [type]: updatedImages };
+                });
+            }, 300);
+
+            return () => clearInterval(uploadInterval);
+        });
+    };
+
+    const handleReceiptImageDrop = (e, type) => {
+        e.preventDefault();
+        if (type === 'receipt_pictures') {
+            setReceiptPicturesDragging(false);
+        } else {
+            setReceiptProductsDragging(false);
+        }
+        const files = e.dataTransfer.files;
+        handleReceiptPicturesChange(files, type);
+    };
+
+    // Updated removeReceiptImage function
+    const removeReceiptImage = (index, type) => {
+        setDeliveryFormData((prev) => {
+            const image = prev[type][index];
+            if (image.isNew) {
+                return {
+                    ...prev,
+                    [type]: prev[type].filter((_, i) => i !== index),
+                };
+            } else {
+                const updatedImages = [...prev[type]];
+                updatedImages[index] = {
+                    ...image,
+                    markedForDeletion: !image.markedForDeletion,
+                };
+                return { ...prev, [type]: updatedImages };
+            }
+        });
+        // Reset the appropriate input based on type
+        if (type === 'receipt_products' && receiptProductsInputRef.current) {
+            receiptProductsInputRef.current.value = null;
+        } else if (type === 'receipt_pictures' && receiptPicturesInputRef.current) {
+            receiptPicturesInputRef.current.value = null;
+        }
+    };
+
+    const openDeliveryPopup = async (productId) => {
+        try {
+            // Set loading state for this specific product
+            setLoadingDeliveryMap((prev) => ({
+                ...prev,
+                [productId]: true,
+            }));
+            const response = await axios.get(`/api/pi-detail/${productId}`);
+            const piDetail = response.data.data;
+
+            const formatImages = (imageString, type) => {
+                if (!imageString) return [];
+                return imageString.split(',').map((img) => ({
+                    id: img,
+                    name: img,
+                    size: 0,
+                    preview: `/storage/uploads/${type}/${img}`,
+                    loading: false,
+                    progress: 100,
+                    isNew: false,
+                    markedForDeletion: false,
+                }));
+            };
+
+            setDeliveryFormData({
+                pi_id: piDetail.pi_id || '',
+                delivery: piDetail.delivery || '',
+                cargo_date: piDetail.cargo_date || '',
+                note_receipt: piDetail.note_receipt || '',
+                receipt_pictures: formatImages(piDetail.receipt_picture, 'receipt_picture'),
+                receipt_products: formatImages(piDetail.receipt_product, 'receipt_product'),
+            });
+
+            setCurrentProductIndex(productId);
+            setIsDeliveryPopupOpen(true);
+        } catch (error) {
+            console.error('Error fetching delivery details:', error);
+            showErrorAlert({
+                title: t('error'),
+                message: t('list_pis.delivery_details_fetch_failed'),
+                darkMode: darkMode,
+            });
+        } finally {
+            // Clear loading state for this specific product
+            setLoadingDeliveryMap((prev) => ({
+                ...prev,
+                [productId]: false,
+            }));
+        }
+    };
+
+    const uncheck_tracking_pi = 26;
+    const handleUncheck = async () => {
+        checkPermission(uncheck_tracking_pi, async (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                });
+                return;
+            }
+            try {
+                setIsLoadingUncheck(true);
+
+                const formData = new FormData();
+                formData.append('delivery', '0');
+                formData.append('cargo_date', '');
+                formData.append('note_receipt', '');
+                formData.append('receipt_pictures_to_keep', '[]');
+                formData.append('receipt_products_to_keep', '[]');
+
+                await axios.post(`/api/pi-detail/update/${currentProductIndex}`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (deliveryFormData.pi_id) {
+                    await refreshProductDetails(deliveryFormData.pi_id);
+                }
+
+                const queryParams = {
+                    page: currentPage,
+                    per_page: entriesPerPage,
+                    search: searchQuery,
+                    search_field: selectedSearchField,
+                    sort_field: sortField || 'id',
+                    sort_direction: sortDirection || 'desc',
+                };
+
+                if (checkedCompanies.length !== companies.length) {
+                    queryParams.companies = checkedCompanies;
+                }
+                if (checkedMethods.length !== methods.length) {
+                    queryParams.methods = checkedMethods;
+                }
+                if (checkedShipments.length !== shipments.length) {
+                    queryParams.shipments = checkedShipments;
+                }
+                if (startDate) {
+                    queryParams.start_date = startDate;
+                }
+                if (endDate) {
+                    queryParams.end_date = endDate;
+                }
+                if (startArrivalDate) {
+                    queryParams.start_arrival_date = startArrivalDate;
+                }
+                if (endArrivalDate) {
+                    queryParams.end_arrival_date = endArrivalDate;
+                }
+                if (tNumberSearch) {
+                    queryParams.t_number = tNumberSearch;
+                }
+                if (rNumberSearch) {
+                    queryParams.r_number = rNumberSearch;
+                }
+                if (trackingStatuses.length !== 4) {
+                    queryParams.tracking_statuses = trackingStatuses;
+                }
+
+                router.get(
+                    '/pi/list',
+                    queryParams,
+                    {
+                        preserveState: true,
+                        preserveScroll: true,
+                        replace: true,
+                        onSuccess: (page) => {
+                            setData(page.props.purchaseInvoices.data);
+                            setPagination({
+                                currentPage: page.props.purchaseInvoices.current_page,
+                                perPage: page.props.purchaseInvoices.per_page,
+                                total: page.props.purchaseInvoices.total,
+                            });
+                        },
+                        onError: (errors) => {
+                            console.error('Error refreshing list:', errors);
+                            showErrorAlert({
+                                title: t('error'),
+                                message: t('list_pis.list_refresh_failed'),
+                                darkMode: darkMode,
+                            });
+                        },
+                    }
+                );
+
+                showSuccessAlert({
+                    title: t('success'),
+                    message: t('list_pis.data_cleared_successfully'),
+                    darkMode: darkMode,
+                    timeout: 2000,
+                });
+
+                // Close popup without confirmation
+                setIsDeliveryPopupOpen(false);
+                setCurrentProductIndex(null);
+                setDeliveryFormData({
+                    cargo_date: '',
+                    note_receipt: '',
+                    receipt_pictures: [],
+                    receipt_products: [],
+                    pi_id: '',
+                });
+            } catch (error) {
+                console.error('Error clearing delivery data:', error);
+                showErrorAlert({
+                    title: t('error'),
+                    message: t('list_pis.data_clear_failed'),
+                    darkMode: darkMode,
+                });
+            } finally {
+                setIsLoadingUncheck(false);
+            }
+        });
+    };
+
+
+    const check_tracking_pi = 25;
+    const handleDeliverySubmit = async (e) => {
+        e.preventDefault();
+        checkPermission(check_tracking_pi, async (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                });
+                return;
+            }
+            setIsLoadingdelivery(true);
+
+            try {
+                if (!deliveryFormData.cargo_date) {
+                    showErrorAlert({
+                        title: t('error'),
+                        message: t('list_pis.cargo_date_required'),
+                        darkMode: darkMode,
+                    });
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('delivery', '1');
+                formData.append('cargo_date', deliveryFormData.cargo_date);
+                formData.append('note_receipt', deliveryFormData.note_receipt);
+
+                const receiptPicturesToKeep = deliveryFormData.receipt_pictures
+                    .filter(img => !img.markedForDeletion && !img.isNew)
+                    .map(img => img.id);
+                formData.append('receipt_pictures_to_keep', JSON.stringify(receiptPicturesToKeep));
+
+                deliveryFormData.receipt_pictures
+                    .filter(img => img.isNew && !img.markedForDeletion)
+                    .forEach((file, index) => {
+                        formData.append(`receipt_pictures[${index}]`, file.file);
+                    });
+
+                const receiptProductsToKeep = deliveryFormData.receipt_products
+                    .filter(img => !img.markedForDeletion && !img.isNew)
+                    .map(img => img.id);
+                formData.append('receipt_products_to_keep', JSON.stringify(receiptProductsToKeep));
+
+                deliveryFormData.receipt_products
+                    .filter(img => img.isNew && !img.markedForDeletion)
+                    .forEach((file, index) => {
+                        formData.append(`receipt_products[${index}]`, file.file);
+                    });
+
+                await axios.post(`/api/pi-detail/update/${currentProductIndex}`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (deliveryFormData.pi_id) {
+                    await refreshProductDetails(deliveryFormData.pi_id);
+                }
+
+                const queryParams = {
+                    page: currentPage,
+                    per_page: entriesPerPage,
+                    search: searchQuery,
+                    search_field: selectedSearchField,
+                    sort_field: sortField || 'id',
+                    sort_direction: sortDirection || 'desc',
+                };
+
+                if (checkedCompanies.length !== companies.length) {
+                    queryParams.companies = checkedCompanies;
+                }
+                if (checkedMethods.length !== methods.length) {
+                    queryParams.methods = checkedMethods;
+                }
+                if (checkedShipments.length !== shipments.length) {
+                    queryParams.shipments = checkedShipments;
+                }
+                if (startDate) {
+                    queryParams.start_date = startDate;
+                }
+                if (endDate) {
+                    queryParams.end_date = endDate;
+                }
+                if (startArrivalDate) {
+                    queryParams.start_arrival_date = startArrivalDate;
+                }
+                if (endArrivalDate) {
+                    queryParams.end_arrival_date = endArrivalDate;
+                }
+                if (tNumberSearch) {
+                    queryParams.t_number = tNumberSearch;
+                }
+                if (rNumberSearch) {
+                    queryParams.r_number = rNumberSearch;
+                }
+                if (trackingStatuses.length !== 4) {
+                    queryParams.tracking_statuses = trackingStatuses;
+                }
+
+                router.get(
+                    '/pi/list',
+                    queryParams,
+                    {
+                        preserveState: true,
+                        preserveScroll: true,
+                        replace: true,
+                        onSuccess: (page) => {
+                            setData(page.props.purchaseInvoices.data);
+                            setPagination({
+                                currentPage: page.props.purchaseInvoices.current_page,
+                                perPage: page.props.purchaseInvoices.per_page,
+                                total: page.props.purchaseInvoices.total,
+                            });
+                        },
+                        onError: (errors) => {
+                            console.error('Error refreshing list:', errors);
+                            showErrorAlert({
+                                title: t('error'),
+                                message: t('list_pis.list_refresh_failed'),
+                                darkMode: darkMode,
+                            });
+                        },
+                    }
+                );
+
+                showSuccessAlert({
+                    title: t('success'),
+                    message: t('list_pis.delivery_updated_successfully'),
+                    darkMode: darkMode,
+                    timeout: 2000,
+                });
+
+                // Close popup without confirmation
+                setIsDeliveryPopupOpen(false);
+                setCurrentProductIndex(null);
+                setDeliveryFormData({
+                    cargo_date: '',
+                    note_receipt: '',
+                    receipt_pictures: [],
+                    receipt_products: [],
+                    pi_id: '',
+                });
+            } catch (error) {
+                console.error('Error updating delivery:', error);
+                showErrorAlert({
+                    title: t('error'),
+                    message: t('list_pis.delivery_update_failed'),
+                    darkMode: darkMode,
+                });
+            } finally {
+                setIsLoadingdelivery(false);
+            }
+        });
+    };
+
+    const refreshProductDetails = async (piId) => {
+        try {
+            const response = await axios.get(`/pi/${piId}/product-details`);
+            setProductData(prev => ({
+                ...prev,
+                [piId]: response.data.productDetails
+            }));
+        } catch (error) {
+            console.error('Error refreshing product details:', error);
+            showErrorAlert({
+                title: t('error'),
+                message: t('list_pis.product_details_fetch_failed'),
+                darkMode: darkMode,
+            });
+        }
+    };
+
+    const closeDeliveryPopup = () => {
+        const hasChanges =
+            deliveryFormData.cargo_date ||
+            deliveryFormData.note_receipt ||
+            deliveryFormData.receipt_pictures.length > 0 ||
+            deliveryFormData.receipt_products.length > 0;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsDeliveryPopupOpen(false);
+                    setCurrentProductIndex(null);
+                    setDeliveryFormData({
+                        cargo_date: '',
+                        note_receipt: '',
+                        receipt_pictures: [],
+                        receipt_products: [],
+                        pi_id: '',
+                    });
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsDeliveryPopupOpen(false);
+            setCurrentProductIndex(null);
+            setDeliveryFormData({
+                cargo_date: '',
+                note_receipt: '',
+                receipt_pictures: [],
+                receipt_products: [],
+                pi_id: '',
+            });
+        }
+    };
 
 
 
@@ -640,6 +685,42 @@ const closeDeliveryPopup = () => {
     const isValidInput = (value) => {
         return value === '' || /^[0-9+\-*/=.]*$/.test(value);
     };
+
+    const evaluateExpression = (input) => {
+        if (!input.startsWith('=')) return input; // Return unchanged if not an expression
+
+        const expression = input.slice(1); // Remove the '='
+        // Validate: Allow numbers, operators (+, -, *, /), parentheses, and decimals
+        const isValid = /^[0-9+\-*/().\s]*$/.test(expression);
+        if (!isValid) {
+            throw new Error('Invalid expression');
+        }
+
+        try {
+            const result = eval(expression); // Evaluate the expression
+            if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+                throw new Error('Invalid result');
+            }
+            // Check if result is an integer
+            if (Number.isInteger(result)) {
+                return result.toString(); // Return integer as string without decimals
+            }
+            // Return decimal number with 3 decimal places
+            return result.toFixed(3);
+        } catch (error) {
+            throw new Error('Error evaluating expression');
+        }
+    };
+
+    const calculateCartonSum = (products) => {
+        if (!products || !Array.isArray(products)) return '0';
+        const sum = products.reduce((acc, product) => {
+            const ctnValue = parseFloat(product.ctn) || 0;
+            return acc + ctnValue;
+        }, 0);
+        return sum.toString(); // Return as string to match input field format
+    };
+
     const [sumOfTotals, setSumOfTotals] = useState(0);
 
     const calculateTotals = (updatedProductData) => {
@@ -717,6 +798,7 @@ const closeDeliveryPopup = () => {
         handleThumbnailChange(files);
     };
 
+    // Updated removeThumbnail function
     const removeThumbnail = (index) => {
         setThumbnails((prev) => {
             const thumbnail = prev[index];
@@ -733,6 +815,9 @@ const closeDeliveryPopup = () => {
                 return updatedThumbnails;
             }
         });
+        if (thumbnailInputRef.current) {
+            thumbnailInputRef.current.value = null; // Reset input value
+        }
     };
 
     const formatFileName = (name) => {
@@ -749,89 +834,89 @@ const closeDeliveryPopup = () => {
 
     const [value, setValue] = React.useState(0);
 
-const excel_pi = 28;
-const downloadExcel = async (piId) => {
-    checkPermission(excel_pi, async (hasPermission) => {
-        if (!hasPermission) {
-            showErrorAlert({
-                title: t("error"),
-                message: t("you_do_not_have_permission"),
-                darkMode,
-            });
-            return;
-        }
-        const selectedPI = data.find((item) => item.id === piId);
-        if (!selectedPI) {
-            showErrorAlert({
-                title: t('error'),
-                message: t('list_pis.pi_not_found'),
-                darkMode: darkMode,
-            });
-            return;
-        }
+    const excel_pi = 28;
+    const downloadExcel = async (piId) => {
+        checkPermission(excel_pi, async (hasPermission) => {
+            if (!hasPermission) {
+                showErrorAlert({
+                    title: t("error"),
+                    message: t("you_do_not_have_permission"),
+                    darkMode,
+                });
+                return;
+            }
+            const selectedPI = data.find((item) => item.id === piId);
+            if (!selectedPI) {
+                showErrorAlert({
+                    title: t('error'),
+                    message: t('list_pis.pi_not_found'),
+                    darkMode: darkMode,
+                });
+                return;
+            }
 
-        setExcelProgress(0); // Reset progress
-        try {
-            // Start a fallback progress animation if no progress events are received
-            let fallbackProgress = 0;
-            const fallbackInterval = setInterval(() => {
-                fallbackProgress = Math.min(fallbackProgress + 5, 95); // Increment up to 95%
-                setExcelProgress((prev) => (prev === 0 ? fallbackProgress : prev));
-                console.log(`Fallback progress: ${fallbackProgress}%`); // Debug log
-            }, 500); // Update every 500ms
+            setExcelProgress(0); // Reset progress
+            try {
+                // Start a fallback progress animation if no progress events are received
+                let fallbackProgress = 0;
+                const fallbackInterval = setInterval(() => {
+                    fallbackProgress = Math.min(fallbackProgress + 5, 95); // Increment up to 95%
+                    setExcelProgress((prev) => (prev === 0 ? fallbackProgress : prev));
+                    console.log(`Fallback progress: ${fallbackProgress}%`); // Debug log
+                }, 500); // Update every 500ms
 
-            const response = await axios.get(`/pi/${piId}/download-excel`, {
-                responseType: 'blob',
-                onDownloadProgress: (progressEvent) => {
-                    clearInterval(fallbackInterval); // Stop fallback when real progress starts
-                    if (progressEvent.total) {
-                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                        setExcelProgress(percentCompleted);
-                        console.log(`Download progress: ${percentCompleted}%`); // Debug log
-                    } else {
-                        // If total is unknown, keep fallback progress
-                        console.log('Progress total unknown, using fallback');
-                    }
-                },
-            });
+                const response = await axios.get(`/pi/${piId}/download-excel`, {
+                    responseType: 'blob',
+                    onDownloadProgress: (progressEvent) => {
+                        clearInterval(fallbackInterval); // Stop fallback when real progress starts
+                        if (progressEvent.total) {
+                            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                            setExcelProgress(percentCompleted);
+                            console.log(`Download progress: ${percentCompleted}%`); // Debug log
+                        } else {
+                            // If total is unknown, keep fallback progress
+                            console.log('Progress total unknown, using fallback');
+                        }
+                    },
+                });
 
-            clearInterval(fallbackInterval); // Ensure fallback stops on completion
+                clearInterval(fallbackInterval); // Ensure fallback stops on completion
 
-            // Complete the progress bar
-            setExcelProgress(100);
-            console.log('Download completed, setting progress to 100%');
+                // Complete the progress bar
+                setExcelProgress(100);
+                console.log('Download completed, setting progress to 100%');
 
-            const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `PI of ${selectedPI.supplier || selectedPI.pi_name_cn} ${selectedPI.invoice_code}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+                const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `PI of ${selectedPI.supplier || selectedPI.pi_name_cn} ${selectedPI.invoice_code}.xlsx`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
 
-            showSuccessAlert({
-                title: t('success'),
-                message: t('list_pis.download_complete'),
-                darkMode: darkMode,
-                timeout: 2000,
-            });
-        } catch (error) {
-            console.error('Download error:', error);
-            showErrorAlert({
-                title: t('error'),
-                message: t('list_pis.download_failed'),
-                darkMode: darkMode,
-            });
-        } finally {
-            setTimeout(() => {
-                setExcelProgress(0);
-                console.log('Progress reset to 0');
-            }, 300); // Short delay to show 100% briefly
-        }
-    });
-};
+                showSuccessAlert({
+                    title: t('success'),
+                    message: t('list_pis.download_complete'),
+                    darkMode: darkMode,
+                    timeout: 2000,
+                });
+            } catch (error) {
+                console.error('Download error:', error);
+                showErrorAlert({
+                    title: t('error'),
+                    message: t('list_pis.download_failed'),
+                    darkMode: darkMode,
+                });
+            } finally {
+                setTimeout(() => {
+                    setExcelProgress(0);
+                    console.log('Progress reset to 0');
+                }, 300); // Short delay to show 100% briefly
+            }
+        });
+    };
 
     // Function to load reference photos
     const loadReferencePhotos = async (piId) => {
@@ -984,12 +1069,36 @@ const downloadExcel = async (piId) => {
     }, [openActionDropdown]);
 
     // In ListPI component, add to state declarations
-    const [trackingStatuses, setTrackingStatuses] = useState([
-        'overdue',
-        'delivered',
-        'onTrack',
-        'missingInfo',
-    ]);
+    const [trackingStatuses, setTrackingStatuses] = useState([1, 2, 3, 4]);
+
+    // Update helper functions
+    const getTrackingClass = (status) => {
+        switch(status) {
+            case 1: return 'gray-tracking';   // Not out yet
+            case 2: return 'orange-tracking'; // On Track
+            case 3: return 'green-tracking';  // Delivered
+            case 4: return 'red-tracking';    // Overdue
+            default: return 'gray-tracking';
+        }
+    };
+
+    const getTrackingTitle = (status) => {
+        switch(status) {
+            case 1: return t('list_pis.not_out_yet');
+            case 2: return t('list_pis.on_track');
+            case 3: return t('list_pis.delivered');
+            case 4: return t('list_pis.overdue');
+            default: return '';
+        }
+    };
+
+        // Handle sort
+    const handleSort = (field) => {
+        const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+        setSortField(field);
+        setSortDirection(newDirection);
+        applyFilters();
+    };
 
     // Apply filters and fetch data
     // In ListPI component, update applyFilters
@@ -1051,7 +1160,7 @@ const downloadExcel = async (piId) => {
 
         // Include tracking statuses only if not all are selected
         const currentTrackingStatuses = extraParams.trackingStatuses || trackingStatuses;
-        if (currentTrackingStatuses.length !== 4) { // Check if not all statuses are selected
+        if (currentTrackingStatuses.length !== 4) { // Check if not all 4 statuses selected
             queryParams.tracking_statuses = currentTrackingStatuses;
         }
 
@@ -1070,14 +1179,6 @@ const downloadExcel = async (piId) => {
                 },
             }
         );
-    };
-
-    // Handle sort
-    const handleSort = (field) => {
-        const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-        setSortField(field);
-        setSortDirection(newDirection);
-        applyFilters();
     };
 
     // Format date to DD-MMM-YY
@@ -1276,7 +1377,7 @@ const downloadExcel = async (piId) => {
                     form.append(`products[${index}][qty]`, product.qty || '0');
                     form.append(`products[${index}][price]`, product.price || '0');
                     form.append(`products[${index}][progress]`, product.progress || '0');
-                    form.append(`products[${index}][delivered]`, product.delivered ? '1' : '0'); // Add delivered
+                    form.append(`products[${index}][delivered]`, product.delivered ? '1' : '0');
                 });
             }
 
@@ -1287,7 +1388,7 @@ const downloadExcel = async (piId) => {
 
             const photosToDelete = thumbnails
                 .filter((thumbnail) => !thumbnail.isNew && thumbnail.markedForDeletion)
-                .map((thumbnail) => thumbnail.id);
+                .map((thumbnail) => thumbnail.preview);
             form.append('photos_to_delete', JSON.stringify(photosToDelete));
 
             thumbnails
@@ -1351,7 +1452,30 @@ const downloadExcel = async (piId) => {
                             timeout: 2000,
                         });
 
-                        closePopup();
+                        // Close popup without confirmation
+                        setIsPopupOpen(false);
+                        setCurrentPI(null);
+                        setIsEditMode(false);
+                        setFormData({
+                            pi_number: '',
+                            pi_name_en: '',
+                            pi_name_cn: '',
+                            date: '',
+                            ctn: '',
+                            tracking_number: '',
+                            shipment_id: '',
+                            shipping_method: '',
+                            arrival_date: '',
+                            company_id: '',
+                            receipt_number: '',
+                            total: '',
+                            discount: '',
+                            extra_charge: '',
+                            remark: '',
+                            thumbnails: [],
+                        });
+                        setThumbnails([]);
+                        setProductData({});
                     },
                     onError: (errors) => {
                         console.error('Update error:', errors);
@@ -1415,12 +1539,15 @@ const downloadExcel = async (piId) => {
                 markedForDeletion: false,
             }));
 
+            // Calculate the initial sum of cartons from productDetails
+            const initialCtnSum = calculateCartonSum(productDetails);
+
             setFormData({
                 pi_number: piData.invoice_code || '',
                 pi_name_en: piData.supplier || '',
                 pi_name_cn: piData.pi_name_cn || '',
                 date: piData.date || '',
-                ctn: piData.ctn || '',
+                ctn: initialCtnSum, // Use calculated sum instead of piData.ctn
                 tracking_number: piData.t_number || '',
                 shipment_id: shipment ? shipment.id : '',
                 shipping_method: method ? method.id : '',
@@ -1447,12 +1574,68 @@ const downloadExcel = async (piId) => {
             setIsEditLoading(false); // Stop edit-specific loading
         }
     };
-    const closePopup = () => {
+const closePopup = () => {
+    const hasChanges =
+        formData.pi_number ||
+        formData.pi_name_en ||
+        formData.pi_name_cn ||
+        formData.date ||
+        formData.ctn ||
+        formData.tracking_number ||
+        formData.shipment_id ||
+        formData.shipping_method ||
+        formData.arrival_date ||
+        formData.company_id ||
+        formData.receipt_number ||
+        formData.total ||
+        formData.discount ||
+        formData.extra_charge ||
+        formData.remark ||
+        thumbnails.length > 0 ||
+        productData[currentPI?.id]?.some(product =>
+            product.ctn || product.qty || product.price || product.total || product.progress
+        );
+
+    if (hasChanges) {
+        showConfirmAlert({
+            title: t("confirm_close_title"),
+            message: t("confirm_close_popup"),
+            darkMode,
+            onConfirm: () => {
+                setIsPopupOpen(false);
+                setCurrentPI(null);
+                setIsEditMode(false);
+                setFormData({
+                    pi_number: '',
+                    pi_name_en: '',
+                    pi_name_cn: '',
+                    date: '',
+                    ctn: '',
+                    tracking_number: '',
+                    shipment_id: '',
+                    shipping_method: '',
+                    arrival_date: '',
+                    company_id: '',
+                    receipt_number: '',
+                    total: '',
+                    discount: '',
+                    extra_charge: '',
+                    remark: '',
+                    thumbnails: [],
+                });
+                setThumbnails([]);
+                setProductData({});
+            },
+            onCancel: () => {
+                // Do nothing, keep the popup open
+            },
+        });
+    } else {
         setIsPopupOpen(false);
         setCurrentPI(null);
         setIsEditMode(false);
-        setFormData({ amount: '', rating: '' });
-    };
+    }
+};
 
     const delete_pi = 23;
     const handleDelete = (id) => {
@@ -1645,6 +1828,10 @@ const downloadExcel = async (piId) => {
             queryParams.r_number = rNumberSearch;
         }
 
+        if (trackingStatuses.length !== 4) {
+            queryParams.tracking_statuses = trackingStatuses;
+        }
+
         // Update URL and fetch data
         router.get(
             '/pi/list',
@@ -1776,6 +1963,34 @@ const downloadExcel = async (piId) => {
     }, [productData, formData.extra_charge, formData.discount, currentPI?.id]);
 
     useEffect(() => {
+        if (currentPI?.id && productData[currentPI.id] && !hasCheckboxChecked) {
+            const newProductData = { ...productData };
+            let sum = 0;
+
+            // Calculate total for each product
+            newProductData[currentPI.id] = newProductData[currentPI.id].map(product => {
+                const qty = parseFloat(product.qty) || 0;
+                const price = parseFloat(product.price) || 0;
+                const total = (qty * price).toFixed(3);
+                sum += parseFloat(total) || 0;
+                return { ...product, total };
+            });
+
+            // Update productData with new totals
+            setProductData(newProductData);
+
+            // Update sumOfTotals and formData.total
+            setSumOfTotals(sum);
+            const extraCharge = parseFloat(formData.extra_charge) || 0;
+            const discount = parseFloat(formData.discount) || 0;
+            setFormData(prev => ({
+                ...prev,
+                total: (sum + extraCharge - discount).toFixed(3),
+            }));
+        }
+    }, [productData[currentPI?.id], hasCheckboxChecked, formData.extra_charge, formData.discount, currentPI?.id]);
+
+    useEffect(() => {
         setData(purchaseInvoices.data);
         setPagination({
             currentPage: purchaseInvoices.current_page,
@@ -1850,10 +2065,8 @@ const downloadExcel = async (piId) => {
                                     )}`}
                                     onClick={() => setIsSelectOpen(!isSelectOpen)}
                                 >
-                                    {selectedSearchField === "Pi_Number"
-                                        ? t("list_pis.invoice_code")
-                                        : selectedSearchField === "Name"
-                                        ? t("list_pis.name_invoice")
+                                    {selectedSearchField === "Invoice_Code_Name"
+                                        ? t("list_pis.invoice_code_name")
                                         : t("product")}
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -1883,8 +2096,7 @@ const downloadExcel = async (piId) => {
                                         )}`}
                                     >
                                         {[
-                                            { key: "Pi_Number", label: t("list_pis.invoice_code") },
-                                            { key: "Name", label: t("list_pis.name_invoice") },
+                                            { key: "Invoice_Code_Name", label: t("list_pis.invoice_code_name") },
                                             { key: "Product", label: t("product") },
                                         ].map((item) => (
                                             <div
@@ -1909,10 +2121,8 @@ const downloadExcel = async (piId) => {
                                 <input
                                     type="text"
                                     placeholder={
-                                        selectedSearchField === "Pi_Number"
-                                            ? t("list_pis.search_invoice_code")
-                                            : selectedSearchField === "Name"
-                                            ? t("list_pis.search_name_invoice")
+                                        selectedSearchField === "Invoice_Code_Name"
+                                            ? t("list_pis.search_invoice_code_name")
                                             : t("list_pis.search_product")
                                     }
                                     value={searchQuery}
@@ -1945,7 +2155,7 @@ const downloadExcel = async (piId) => {
                     </div>
                     <div className="relative overflow-x-auto rounded-lg text-sm h-[calc(100vh-14rem)] mx-auto custom-scrollbar">
                         <div className="w-full min-w-max">
-                            <table className="w-full border-collapse text-[10px]" ref={tableRef}>
+                            <table className="w-full border-collapse text-[12px]" ref={tableRef}>
                                 <thead>
                                     <tr
                                         className={`uppercase ${getDarkModeClass(
@@ -2308,16 +2518,11 @@ const downloadExcel = async (piId) => {
                                                                 <div className="h-full flex items-center justify-center">
                                                                     <span>{formatDate(pi.arrival_date)}</span>
                                                                 </div>
-                                                                {pi.tracking_class && (
+                                                                {pi.tracking_status && (
                                                                     <div className="h-full flex items-center justify-center">
                                                                         <div
-                                                                            title={
-                                                                                pi.tracking_class === 'red-tracking' ? 'Overdue' :
-                                                                                pi.tracking_class === 'green-tracking' ? 'Delivered' :
-                                                                                pi.tracking_class === 'orange-tracking' ? 'On Track' :
-                                                                                pi.tracking_class === 'gray-tracking' ? 'Missing Info' : ''
-                                                                            }
-                                                                            className={`${pi.tracking_class} w-4 h-4`}
+                                                                            title={getTrackingTitle(pi.tracking_status)}
+                                                                            className={`${getTrackingClass(pi.tracking_status)} w-4 h-4 rounded-full`}
                                                                         ></div>
                                                                     </div>
                                                                 )}
@@ -2638,74 +2843,95 @@ const downloadExcel = async (piId) => {
                                                                                             </td>
                                                                                             <td className="p-3">
                                                                                                 {product.code ? (
-                                                                                                    <Bellypopover darkMode={darkMode}>
-                                                                                                    <span
-                                                                                                        className={`label-Purple ${getDarkModeClass(
-                                                                                                        darkMode,
-                                                                                                        "label-Purple-darkmode",
-                                                                                                        ""
-                                                                                                        )}`}
-                                                                                                        data-belly-caption={product.code}
-                                                                                                    >
-                                                                                                        {product.code && product.code.length > 15
-                                                                                                        ? `${product.code.substring(0, 12)}...`
-                                                                                                        : product.code || ""}
-                                                                                                    </span>
+                                                                                                    <Clipboard darkMode={darkMode} textToCopy={product.code}>
+                                                                                                        <Bellypopover darkMode={darkMode}>
+                                                                                                        <span
+                                                                                                            className={`label-Purple ${getDarkModeClass(
+                                                                                                            darkMode,
+                                                                                                            "label-Purple-darkmode",
+                                                                                                            ""
+                                                                                                            )}`}
+                                                                                                            data-belly-caption={product.code}
+                                                                                                        >
+                                                                                                            {product.code && product.code.length > 15
+                                                                                                            ? `${product.code.substring(0, 12)}...`
+                                                                                                            : product.code || ""}
+                                                                                                        </span>
 
-                                                                                                    </Bellypopover>
+                                                                                                        </Bellypopover>
+                                                                                                    </Clipboard>
                                                                                                 ) : (
                                                                                                     ""
                                                                                                 )}
                                                                                             </td>
-                                                                                            <td className="p-3">
-                                                                                            {product.name_en || product.name_kh || product.name_cn ? (
-                                                                                                <Bellypopover darkMode={darkMode}>
-                                                                                                <span
-                                                                                                    className={`label-green ${getDarkModeClass(
-                                                                                                    darkMode,
-                                                                                                    "label-green-darkmode",
-                                                                                                    ""
-                                                                                                    )}`}
-                                                                                                    data-belly-caption={`${product.name_en || ""}, ${
-                                                                                                    product.name_kh || ""
-                                                                                                    }, ${product.name_cn || ""}`}
+                                                                                            <td
+                                                                                                className="p-1 pr-3 pl-3 flex flex-col items-start gap-1"
                                                                                                 >
-                                                                                                    {(() => {
-                                                                                                    const displayName =
-                                                                                                        product.name_en ||
-                                                                                                        product.name_kh ||
-                                                                                                        product.name_cn ||
-                                                                                                        "";
-                                                                                                    return displayName.length > 15
-                                                                                                        ? `${displayName.substring(0, 12)}...`
-                                                                                                        : displayName;
-                                                                                                    })()}
-                                                                                                </span>
-                                                                                                </Bellypopover>
-                                                                                            ) : (
-                                                                                                ""
-                                                                                            )}
+                                                                                                {product.name_en ? (
+                                                                                                    <Clipboard darkMode={darkMode} textToCopy={product.name_en}>
+                                                                                                    <Bellypopover darkMode={darkMode}>
+                                                                                                        <span
+                                                                                                        className={`label-green ${darkMode ? "label-green-darkmode" : ""} inline-block w-auto`}
+                                                                                                        data-belly-caption={product.name_en}
+                                                                                                        >
+                                                                                                        {product.name_en.length > 20 ? `${product.name_en.substring(0, 17)}...` : product.name_en}
+                                                                                                        </span>
+                                                                                                    </Bellypopover>
+                                                                                                    </Clipboard>
+                                                                                                ) : (
+                                                                                                    ""
+                                                                                                )}
+                                                                                                {product.name_kh ? (
+                                                                                                    <Clipboard darkMode={darkMode} textToCopy={product.name_kh}>
+                                                                                                    <Bellypopover darkMode={darkMode}>
+                                                                                                        <span
+                                                                                                        className={`label-pink ${darkMode ? "label-pink-darkmode" : ""} inline-block w-auto`}
+                                                                                                        data-belly-caption={product.name_kh}
+                                                                                                        >
+                                                                                                        {product.name_kh.length > 20 ? `${product.name_kh.substring(0, 17)}...` : product.name_kh}
+                                                                                                        </span>
+                                                                                                    </Bellypopover>
+                                                                                                    </Clipboard>
+                                                                                                ) : (
+                                                                                                    ""
+                                                                                                )}
+                                                                                                {product.name_cn ? (
+                                                                                                    <Clipboard darkMode={darkMode} textToCopy={product.name_cn}>
+                                                                                                        <Bellypopover darkMode={darkMode}>
+                                                                                                            <span
+                                                                                                            className={`label-blue ${darkMode ? "label-blue-darkmode" : ""} inline-block w-auto`}
+                                                                                                            data-belly-caption={product.name_cn}
+                                                                                                            >
+                                                                                                            {product.name_cn.length > 20 ? `${product.name_cn.substring(0, 17)}...` : product.name_cn}
+                                                                                                            </span>
+                                                                                                        </Bellypopover>
+                                                                                                    </Clipboard>
+                                                                                                ) : (
+                                                                                                    ""
+                                                                                                )}
                                                                                             </td>
                                                                                             <td className="p-3">{product.ctn}</td>
                                                                                             <td className="p-3">{product.qty}</td>
-                                                                                            <td className="p-3">${product.price.toFixed(3)}</td>
-                                                                                            <td className="p-3">${product.total.toFixed(3)}</td>
+                                                                                            <td className="p-3">${Number(product.price).toFixed(3)}</td>
+                                                                                            <td className="p-3">${Number(product.total).toFixed(3)}</td>
                                                                                             <td className="p-3 max-w-xs">
                                                                                             {product.note ? (
-                                                                                                <Bellypopover darkMode={darkMode}>
-                                                                                                <span
-                                                                                                    className={`label-red ${getDarkModeClass(
-                                                                                                    darkMode,
-                                                                                                    "label-red-darkmode",
-                                                                                                    ""
-                                                                                                    )}`}
-                                                                                                    data-belly-caption={product.note}
-                                                                                                >
-                                                                                                    {product.note && product.note.length > 15
-                                                                                                    ? `${product.note.substring(0, 12)}...`
-                                                                                                    : product.note || ""}
-                                                                                                </span>
-                                                                                                </Bellypopover>
+                                                                                                <Clipboard darkMode={darkMode} textToCopy={product.note}>
+                                                                                                    <Bellypopover darkMode={darkMode}>
+                                                                                                        <span
+                                                                                                            className={`label-red ${getDarkModeClass(
+                                                                                                            darkMode,
+                                                                                                            "label-red-darkmode",
+                                                                                                            ""
+                                                                                                            )}`}
+                                                                                                            data-belly-caption={product.note}
+                                                                                                        >
+                                                                                                            {product.note && product.note.length > 15
+                                                                                                            ? `${product.note.substring(0, 12)}...`
+                                                                                                            : product.note || ""}
+                                                                                                        </span>
+                                                                                                    </Bellypopover>
+                                                                                                </Clipboard>
                                                                                             ) : (
                                                                                                 ""
                                                                                             )}
@@ -2812,7 +3038,7 @@ const downloadExcel = async (piId) => {
                                                                             : 'bg-[#F7B500] text-gray-900'
                                                                     }`}
                                                                 >
-                                                                    <span className="text-sm">Extra Charge</span>
+                                                                    <span className="text-sm">{t('list_pis.extra_charge')}</span>
                                                                 </td>
                                                                 <td colSpan={4} className="p-2 text-left">
                                                                     <span className="text-sm font-semibold">{pi.extra_charge ? `${pi.extra_charge.toFixed(3)} $` : '0.000 $'}</span>
@@ -2833,7 +3059,7 @@ const downloadExcel = async (piId) => {
                                                                             : 'bg-[#ffaa00] text-gray-900'
                                                                     }`}
                                                                 >
-                                                                    <span className="text-sm">Discount</span>
+                                                                    <span className="text-sm">{t('list_pis.discount')}</span>
                                                                 </td>
                                                                 <td colSpan={4} className="p-2 text-left">
                                                                     <span className="text-sm font-semibold">{pi.discount ? `${pi.discount.toFixed(3)} $` : '0.000 $'}</span>
@@ -2854,7 +3080,7 @@ const downloadExcel = async (piId) => {
                                                                             : 'bg-[#ff8800] text-gray-900'
                                                                     }`}
                                                                 >
-                                                                    <span className="text-sm">Net Total</span>
+                                                                    <span className="text-sm">{t('list_pis.net_total')}</span>
                                                                 </td>
                                                                 <td colSpan={4} className="p-2 text-left">
                                                                     <span className="text-sm font-semibold">{pi.amount.toFixed(3)} $</span>
@@ -3123,6 +3349,7 @@ const downloadExcel = async (piId) => {
                                     multiple
                                     className="hidden"
                                     id="receipt-products-input"
+                                    ref={receiptProductsInputRef} // Add ref
                                     onChange={(e) => handleReceiptPicturesChange(e.target.files, "receipt_products")}
                                     />
                                 </div>
@@ -3308,6 +3535,7 @@ const downloadExcel = async (piId) => {
                                     multiple
                                     className="hidden"
                                     id="receipt-pictures-input"
+                                    ref={receiptPicturesInputRef} // Add ref
                                     onChange={(e) => handleReceiptPicturesChange(e.target.files, "receipt_pictures")}
                                     />
                                 </div>
@@ -3545,7 +3773,14 @@ const downloadExcel = async (piId) => {
                             </h2>
                         </div>
                         <div className="flex-1 text-[11px] overflow-y-auto p-6 pt-0 custom-scrollbar">
-                                <form id="edit-pi-form" className="space-y-6" onSubmit={handleSubmit}>
+                                <form id="edit-pi-form" className="space-y-6"
+                                    onSubmit={handleSubmit}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.ctrlKey && e.target.tagName.toLowerCase() !== 'textarea') {
+                                        e.preventDefault(); // Prevent form submission on Enter (unless Ctrl+Enter or in textarea)
+                                        }
+                                    }}
+                                    >
                                     {/* Row 1: 4-column layout */}
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div>
@@ -3661,10 +3896,20 @@ const downloadExcel = async (piId) => {
                                                 name="ctn"
                                                 value={formData.ctn}
                                                 onChange={(e) => {
-                                                     const value = e.target.value;
-                                                    // Allow only numbers and a single decimal point (optional)
-                                                    if (/^\d*\.?\d*$/.test(value) || value === "") {
-                                                    setFormData({ ...formData, ctn: e.target.value });
+                                                    const value = e.target.value;
+                                                    if (isValidInput(value)) {
+                                                        setFormData({ ...formData, ctn: value });
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && formData.ctn.startsWith('=')) {
+                                                        e.preventDefault();
+                                                        try {
+                                                            const result = evaluateExpression(formData.ctn);
+                                                            setFormData({ ...formData, ctn: result });
+                                                        } catch (error) {
+
+                                                        }
                                                     }
                                                 }}
                                                 className={`w-full border rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
@@ -3684,19 +3929,19 @@ const downloadExcel = async (piId) => {
                                                     "text-gray-700"
                                                 )}`}
                                             >
-                                                {t("list_pis.tracking_number")}
+                                                {t("list_pis.receipt_number")}
                                             </label>
                                             <input
                                                 type="text"
-                                                name="tracking_number"
-                                                value={formData.tracking_number}
-                                                onChange={(e) => setFormData({ ...formData, tracking_number: e.target.value })}
+                                                name="receipt_number"
+                                                value={formData.receipt_number}
+                                                onChange={(e) => setFormData({ ...formData, receipt_number: e.target.value })}
                                                 className={`w-full border rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                                     darkMode,
                                                     "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                                     "bg-white text-gray-900 border-gray-200"
                                                 )}`}
-                                                placeholder={t("list_pis.tracking_number")}
+                                                placeholder={t("list_pis.receipt_number")}
                                             />
                                             <label
                                                 className={`uppercase block font-medium mb-1 ${getDarkModeClass(
@@ -3772,6 +4017,7 @@ const downloadExcel = async (piId) => {
                                         </div>
 
                                         <div>
+
                                             <label
                                                 className={`uppercase block font-medium mb-1 ${getDarkModeClass(
                                                     darkMode,
@@ -3779,19 +4025,19 @@ const downloadExcel = async (piId) => {
                                                     "text-gray-700"
                                                 )}`}
                                             >
-                                                {t("list_pis.receipt_number")}
+                                                {t("list_pis.tracking_number")}
                                             </label>
                                             <input
                                                 type="text"
-                                                name="receipt_number"
-                                                value={formData.receipt_number}
-                                                onChange={(e) => setFormData({ ...formData, receipt_number: e.target.value })}
+                                                name="tracking_number"
+                                                value={formData.tracking_number}
+                                                onChange={(e) => setFormData({ ...formData, tracking_number: e.target.value })}
                                                 className={`w-full border rounded-lg p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                                     darkMode,
                                                     "bg-[#2D2D2D] text-gray-300 border-gray-700",
                                                     "bg-white text-gray-900 border-gray-200"
                                                 )}`}
-                                                placeholder={t("list_pis.receipt_number")}
+                                                placeholder={t("list_pis.tracking_number")}
                                             />
                                             <label
                                                 className={`uppercase block font-medium mb-1 ${getDarkModeClass(
@@ -3850,6 +4096,17 @@ const downloadExcel = async (piId) => {
                                                                     }
                                                                 }
                                                             }}
+                                                            onKeyDown={(e) => {
+                                                                if (!hasCheckboxChecked && e.key === 'Enter' && formData.discount.startsWith('=')) {
+                                                                    e.preventDefault();
+                                                                    try {
+                                                                        const result = evaluateExpression(formData.discount);
+                                                                        setFormData({ ...formData, discount: result });
+                                                                    } catch (error) {
+
+                                                                    }
+                                                                }
+                                                            }}
                                                             className={`w-full border rounded-lg p-2 pr-6 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                                                 darkMode,
                                                                 "bg-[#2D2D2D] text-gray-300 border-gray-700",
@@ -3889,6 +4146,21 @@ const downloadExcel = async (piId) => {
                                                                     const value = e.target.value;
                                                                     if (isValidInput(value)) {
                                                                         setFormData({ ...formData, extra_charge: value });
+                                                                    }
+                                                                }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (!hasCheckboxChecked && e.key === 'Enter' && formData.extra_charge.startsWith('=')) {
+                                                                    e.preventDefault();
+                                                                    try {
+                                                                        const result = evaluateExpression(formData.extra_charge);
+                                                                        setFormData({ ...formData, extra_charge: result });
+                                                                    } catch (error) {
+                                                                        showErrorAlert({
+                                                                            title: t('error'),
+                                                                            message: t('list_pis.invalid_expression'),
+                                                                            darkMode: darkMode,
+                                                                        });
                                                                     }
                                                                 }
                                                             }}
@@ -3994,6 +4266,7 @@ const downloadExcel = async (piId) => {
                                                     multiple
                                                     className="hidden"
                                                     id="thumbnail-input-col4"
+                                                    ref={thumbnailInputRef} // Add ref
                                                     onChange={(e) => handleThumbnailChange(e.target.files)}
                                                 />
                                             </div>
@@ -4172,49 +4445,68 @@ const downloadExcel = async (piId) => {
                                                         </td>
                                                         <td className="p-3">
                                                             {product.code ? (
-                                                                <Bellypopover darkMode={darkMode}>
-                                                                    <span
-                                                                        className={`label-Purple ${getDarkModeClass(
-                                                                            darkMode,
-                                                                            "label-Purple-darkmode",
-                                                                            ""
-                                                                        )}`}
-                                                                        data-belly-caption={product.code}
-                                                                    >
-                                                                        {product.code && product.code.length > 15
-                                                                            ? `${product.code.substring(0, 12)}...`
-                                                                            : product.code || ""}
-                                                                    </span>
-                                                                </Bellypopover>
+                                                                <Clipboard darkMode={darkMode} textToCopy={product.code}>
+                                                                    <Bellypopover darkMode={darkMode}>
+                                                                        <span
+                                                                            className={`label-Purple ${getDarkModeClass(
+                                                                                darkMode,
+                                                                                "label-Purple-darkmode",
+                                                                                ""
+                                                                            )}`}
+                                                                            data-belly-caption={product.code}
+                                                                        >
+                                                                            {product.code && product.code.length > 15
+                                                                                ? `${product.code.substring(0, 12)}...`
+                                                                                : product.code || ""}
+                                                                        </span>
+                                                                    </Bellypopover>
+                                                                </Clipboard>
                                                             ) : (
                                                                 ""
                                                             )}
                                                         </td>
-                                                        <td className="p-3">
-                                                            {product.name_en || product.name_kh || product.name_cn ? (
+                                                        <td
+                                                            className="p-1 pr-3 pl-3 flex flex-col items-start gap-1"
+                                                            >
+                                                            {product.name_en ? (
+                                                                <Clipboard darkMode={darkMode} textToCopy={product.name_en}>
                                                                 <Bellypopover darkMode={darkMode}>
                                                                     <span
-                                                                        className={`label-green ${getDarkModeClass(
-                                                                            darkMode,
-                                                                            "label-green-darkmode",
-                                                                            ""
-                                                                        )}`}
-                                                                        data-belly-caption={`${product.name_en || ""}, ${
-                                                                            product.name_kh || ""
-                                                                        }, ${product.name_cn || ""}`}
+                                                                    className={`label-green ${darkMode ? "label-green-darkmode" : ""} inline-block w-auto`}
+                                                                    data-belly-caption={product.name_en}
                                                                     >
-                                                                        {(() => {
-                                                                            const displayName =
-                                                                                product.name_en ||
-                                                                                product.name_kh ||
-                                                                                product.name_cn ||
-                                                                                "";
-                                                                            return displayName.length > 15
-                                                                                ? `${displayName.substring(0, 12)}...`
-                                                                                : displayName;
-                                                                        })()}
+                                                                    {product.name_en.length > 15 ? `${product.name_en.substring(0, 12)}...` : product.name_en}
                                                                     </span>
                                                                 </Bellypopover>
+                                                                </Clipboard>
+                                                            ) : (
+                                                                ""
+                                                            )}
+                                                            {product.name_kh ? (
+                                                                <Clipboard darkMode={darkMode} textToCopy={product.name_kh}>
+                                                                <Bellypopover darkMode={darkMode}>
+                                                                    <span
+                                                                    className={`label-pink ${darkMode ? "label-pink-darkmode" : ""} inline-block w-auto`}
+                                                                    data-belly-caption={product.name_kh}
+                                                                    >
+                                                                    {product.name_kh.length > 15 ? `${product.name_kh.substring(0, 12)}...` : product.name_kh}
+                                                                    </span>
+                                                                </Bellypopover>
+                                                                </Clipboard>
+                                                            ) : (
+                                                                ""
+                                                            )}
+                                                            {product.name_cn ? (
+                                                                <Clipboard darkMode={darkMode} textToCopy={product.name_cn}>
+                                                                <Bellypopover darkMode={darkMode}>
+                                                                    <span
+                                                                    className={`label-blue ${darkMode ? "label-blue-darkmode" : ""} inline-block w-auto`}
+                                                                    data-belly-caption={product.name_cn}
+                                                                    >
+                                                                    {product.name_cn.length > 15 ? `${product.name_cn.substring(0, 12)}...` : product.name_cn}
+                                                                    </span>
+                                                                </Bellypopover>
+                                                                </Clipboard>
                                                             ) : (
                                                                 ""
                                                             )}
@@ -4231,6 +4523,29 @@ const downloadExcel = async (piId) => {
                                                                             const newProductData = { ...productData };
                                                                             newProductData[currentPI.id][index].ctn = value;
                                                                             setProductData(newProductData);
+                                                                            // Update formData.ctn with the new sum
+                                                                            const newSum = calculateCartonSum(newProductData[currentPI.id]);
+                                                                            setFormData((prev) => ({ ...prev, ctn: newSum }));
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (!hasCheckboxChecked && e.key === 'Enter' && product.ctn.startsWith('=')) {
+                                                                        e.preventDefault();
+                                                                        try {
+                                                                            const result = evaluateExpression(product.ctn);
+                                                                            const newProductData = { ...productData };
+                                                                            newProductData[currentPI.id][index].ctn = result;
+                                                                            setProductData(newProductData);
+                                                                            // Update formData.ctn with the new sum
+                                                                            const newSum = calculateCartonSum(newProductData[currentPI.id]);
+                                                                            setFormData((prev) => ({ ...prev, ctn: newSum }));
+                                                                        } catch (error) {
+                                                                            showErrorAlert({
+                                                                                title: t('error'),
+                                                                                message: t('list_pis.invalid_expression'),
+                                                                                darkMode: darkMode,
+                                                                            });
                                                                         }
                                                                     }
                                                                 }}
@@ -4264,6 +4579,27 @@ const downloadExcel = async (piId) => {
                                                                         }
                                                                     }
                                                                 }}
+                                                                onKeyDown={(e) => {
+                                                                    if (!hasCheckboxChecked && e.key === 'Enter' && product.qty.startsWith('=')) {
+                                                                        e.preventDefault();
+                                                                        try {
+                                                                            const result = evaluateExpression(product.qty);
+                                                                            const newProductData = { ...productData };
+                                                                            newProductData[currentPI.id][index].qty = result;
+                                                                            const qty = parseFloat(result) || 0;
+                                                                            const price = parseFloat(newProductData[currentPI.id][index].price) || 0;
+                                                                            newProductData[currentPI.id][index].total = (qty * price).toFixed(3);
+                                                                            setProductData(newProductData);
+                                                                            calculateTotals(newProductData);
+                                                                        } catch (error) {
+                                                                            showErrorAlert({
+                                                                                title: t('error'),
+                                                                                message: t('list_pis.invalid_expression'),
+                                                                                darkMode: darkMode,
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                }}
                                                                 className={`w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition duration-200 ${getDarkModeClass(
                                                                     darkMode,
                                                                     "bg-[#2D2D2D] text-gray-300 border-gray-700",
@@ -4293,6 +4629,27 @@ const downloadExcel = async (piId) => {
                                                                                 ).toFixed(3);
                                                                                 setProductData(newProductData);
                                                                                 calculateTotals(newProductData);
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (!hasCheckboxChecked && e.key === 'Enter' && product.price.startsWith('=')) {
+                                                                            e.preventDefault();
+                                                                            try {
+                                                                                const result = evaluateExpression(product.price);
+                                                                                const newProductData = { ...productData };
+                                                                                newProductData[currentPI.id][index].price = result;
+                                                                                const price = parseFloat(result) || 0;
+                                                                                const qty = parseFloat(newProductData[currentPI.id][index].qty) || 0;
+                                                                                newProductData[currentPI.id][index].total = (qty * price).toFixed(3);
+                                                                                setProductData(newProductData);
+                                                                                calculateTotals(newProductData);
+                                                                            } catch (error) {
+                                                                                showErrorAlert({
+                                                                                    title: t('error'),
+                                                                                    message: t('list_pis.invalid_expression'),
+                                                                                    darkMode: darkMode,
+                                                                                });
                                                                             }
                                                                         }
                                                                     }}
@@ -4337,6 +4694,29 @@ const downloadExcel = async (piId) => {
                                                                                 }
                                                                                 setProductData(newProductData);
                                                                                 calculateTotals(newProductData);
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (!hasCheckboxChecked && e.key === 'Enter' && product.total.startsWith('=')) {
+                                                                            e.preventDefault();
+                                                                            try {
+                                                                                const result = evaluateExpression(product.total);
+                                                                                const newProductData = { ...productData };
+                                                                                newProductData[currentPI.id][index].total = result;
+                                                                                const total = parseFloat(result) || 0;
+                                                                                const qty = parseFloat(newProductData[currentPI.id][index].qty) || 0;
+                                                                                if (qty > 0) {
+                                                                                    newProductData[currentPI.id][index].price = (total / qty).toFixed(3);
+                                                                                }
+                                                                                setProductData(newProductData);
+                                                                                calculateTotals(newProductData);
+                                                                            } catch (error) {
+                                                                                showErrorAlert({
+                                                                                    title: t('error'),
+                                                                                    message: t('list_pis.invalid_expression'),
+                                                                                    darkMode: darkMode,
+                                                                                });
                                                                             }
                                                                         }
                                                                     }}

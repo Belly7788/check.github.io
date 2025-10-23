@@ -30,6 +30,7 @@ return new class extends Migration
             $table->text('pi_name_cn')->nullable();
             $table->foreignId('user_id')->constrained('tbluser')->onDelete('cascade');
             $table->integer('status')->default(1);
+            $table->integer('tracking_status')->default(1);
             $table->timestamps();
         });
     }

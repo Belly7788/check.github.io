@@ -17,4 +17,6 @@ class Company extends Model
     {
         return $query->where('status', 1);
     }
+
+    
 }

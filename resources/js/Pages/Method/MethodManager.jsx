@@ -65,10 +65,29 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setIsEditMode(false);
-        setEditMethodId(null);
-        setFormData({ name_method: "", numberdate: "", note: "" });
+        const hasChanges = formData.name_method || formData.numberdate || formData.note;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditMethodId(null);
+                    setFormData({ name_method: "", numberdate: "", note: "" });
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsPopupOpen(false);
+            setIsEditMode(false);
+            setEditMethodId(null);
+            setFormData({ name_method: "", numberdate: "", note: "" });
+        }
     };
 
     // Toggle row dropdown
@@ -121,7 +140,11 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
             router[method](url, formData, {
                 onSuccess: () => {
                     setIsSaving(false);
-                    closePopup();
+                    // Close popup without confirmation
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditMethodId(null);
+                    setFormData({ name_method: "", numberdate: "", note: "" });
                     showSuccessAlert({
                         title: t("success"),
                         message: isEditMode ? t("method_t.method_updated_successfully") : t("method_t.method_created_successfully"),
@@ -272,23 +295,50 @@ export default function MethodManager({ darkMode, methods, filters, flash }) {
     // Handle ESC and click outside
     useEffect(() => {
         const handleEsc = (event) => {
-            if (event.key === "Escape") {
-                closePopup();
+            if (event.key === "Escape" && isPopupOpen) {
+                const hasChanges = formData.name_method || formData.numberdate || formData.note;
+
+                if (hasChanges) {
+                    showConfirmAlert({
+                        title: t("confirm_close_title"),
+                        message: t("confirm_close_popup"),
+                        darkMode,
+                        onConfirm: () => {
+                            setIsPopupOpen(false);
+                            setIsEditMode(false);
+                            setEditMethodId(null);
+                            setFormData({ name_method: "", numberdate: "", note: "" });
+                            setExpandedRow(null);
+                        },
+                        onCancel: () => {
+                            // Do nothing, keep the popup open
+                        },
+                    });
+                } else {
+                    setIsPopupOpen(false);
+                    setIsEditMode(false);
+                    setEditMethodId(null);
+                    setFormData({ name_method: "", numberdate: "", note: "" });
+                    setExpandedRow(null);
+                }
+            } else if (event.key === "Escape") {
                 setExpandedRow(null);
             }
         };
+
         const handleClickOutside = (event) => {
             if (!event.target.closest(".action-container")) {
                 setOpenActionDropdown(null);
             }
         };
+
         window.addEventListener("keydown", handleEsc);
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             window.removeEventListener("keydown", handleEsc);
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [isPopupOpen, formData.name_method, formData.numberdate, formData.note, darkMode, t]);
 
     useEffect(() => {
         const handleCtrlEnter = (event) => {

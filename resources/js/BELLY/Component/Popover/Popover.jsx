@@ -101,8 +101,8 @@ const Bellypopover = ({ children, darkMode }) => {
             exit="exit"
             className={getDarkModeClass(
               darkMode,
-              'fixed z-10 min-w-[200px] max-w-[300px] p-3 rounded-lg shadow-lg border bg-gray-800 text-white border-gray-700',
-              'fixed z-10 min-w-[200px] max-w-[300px] p-3 rounded-lg shadow-lg border bg-white text-gray-900 border-gray-200'
+              'fixed z-20 min-w-[200px] max-w-[300px] p-3 rounded-lg shadow-lg border bg-gray-800 text-white border-gray-700',
+              'fixed z-20 min-w-[200px] max-w-[300px] p-3 rounded-lg shadow-lg border bg-white text-gray-900 border-gray-200'
             )}
           >
             <div

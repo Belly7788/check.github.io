@@ -95,9 +95,36 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
     };
 
     const closePopup = () => {
-        setIsPopupOpen(false);
-        setEditingUser(null);
-        resetForm();
+        const hasChanges =
+            username ||
+            password ||
+            confirmPassword ||
+            selectedRole ||
+            selectedBranchDefault ||
+            selectedBranches.length > 0 ||
+            selectedCompanies.length > 0 ||
+            desc ||
+            image;
+
+        if (hasChanges) {
+            showConfirmAlert({
+                title: t("confirm_close_title"),
+                message: t("confirm_close_popup"),
+                darkMode,
+                onConfirm: () => {
+                    setIsPopupOpen(false);
+                    setEditingUser(null);
+                    resetForm();
+                },
+                onCancel: () => {
+                    // Do nothing, keep the popup open
+                },
+            });
+        } else {
+            setIsPopupOpen(false);
+            setEditingUser(null);
+            resetForm();
+        }
     };
 
     const resetForm = () => {
@@ -216,7 +243,6 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                 return;
             }
 
-
             // Password length validation
             if (!editingUser && password.length < 8) {
                 showErrorAlert({
@@ -254,7 +280,10 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                 ? router.put(`/settings/user/user-management/${editingUser.id}`, data, {
                     onSuccess: () => {
                         setIsSaving(false);
-                        closePopup();
+                        // Close popup without confirmation
+                        setIsPopupOpen(false);
+                        setEditingUser(null);
+                        resetForm();
                         showSuccessAlert({
                             title: t("success"),
                             message: t("user_updated_success"),
@@ -281,7 +310,10 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
                 : router.post('/settings/user/user-management', data, {
                     onSuccess: () => {
                         setIsSaving(false);
-                        closePopup();
+                        // Close popup without confirmation
+                        setIsPopupOpen(false);
+                        setEditingUser(null);
+                        resetForm();
                         showSuccessAlert({
                             title: t("success"),
                             message: t("user_created_success"),
@@ -449,8 +481,40 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
         };
 
         const handleEsc = (event) => {
-            if (event.key === "Escape") {
-                closePopup();
+            if (event.key === "Escape" && isPopupOpen) {
+                const hasChanges =
+                    username ||
+                    password ||
+                    confirmPassword ||
+                    selectedRole ||
+                    selectedBranchDefault ||
+                    selectedBranches.length > 0 ||
+                    selectedCompanies.length > 0 ||
+                    desc ||
+                    image;
+
+                if (hasChanges) {
+                    showConfirmAlert({
+                        title: t("confirm_close_title"),
+                        message: t("confirm_close_popup"),
+                        darkMode,
+                        onConfirm: () => {
+                            setIsPopupOpen(false);
+                            setEditingUser(null);
+                            resetForm();
+                            setExpandedRow(null);
+                        },
+                        onCancel: () => {
+                            // Do nothing, keep the popup open
+                        },
+                    });
+                } else {
+                    setIsPopupOpen(false);
+                    setEditingUser(null);
+                    resetForm();
+                    setExpandedRow(null);
+                }
+            } else if (event.key === "Escape") {
                 setExpandedRow(null);
             }
         };
@@ -461,7 +525,7 @@ export default function UserManager({ darkMode, users, pagination, roles, branch
             document.removeEventListener("mousedown", handleClickOutside);
             window.removeEventListener("keydown", handleEsc);
         };
-    }, []);
+    }, [isPopupOpen, username, password, confirmPassword, selectedRole, selectedBranchDefault, selectedBranches, selectedCompanies, desc, image, darkMode, t]);
 
     return (
         <>

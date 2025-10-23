@@ -1,4 +1,3 @@
-// resources/js/Pages/PI/Create-PI.jsx
 import { Link, Head, useForm, router } from "@inertiajs/react";
 import { useEffect, useState, useRef } from "react";
 import { FaEllipsisV, FaGripVertical } from "react-icons/fa";
@@ -9,13 +8,13 @@ import "../../BELLY/Component/Gallery/gallery_belly";
 import NoImageComponent from "../../Component/Empty/NotImage/NotImage";
 import NoDataComponent from "../../Component/Empty/NoDataComponent";
 import Bellypopover from '../../BELLY/Component/Popover/Popover';
+import Clipboard from '../../BELLY/Component/Clipboard/Clipboard';
 import { Editor } from '@tinymce/tinymce-react';
 import axios from 'axios';
 import ShimmerLoading from "../../Component/Loading/ShimmerLoading/ShimmerLoading";
 import { showErrorAlert } from "../../Component/ErrorAlert/ErrorAlert";
 import { showSuccessAlert } from "../../Component/SuccessAlert/SuccessAlert";
 import Spinner from "../../Component/spinner/spinner";
-import { checkPermission } from '../../utils/permissionUtils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts = [], idPos = [], piData = null }) {
@@ -53,9 +52,9 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
         pi_name: piData?.pi_name || "",
         pi_name_cn: piData?.pi_name_cn || "",
         company_id: piData?.company_id || "",
-        discount: piData?.discount || 0,
-        extra_charge: piData?.extra_charge || 0,
-        openbalance: piData?.openbalance || 0,
+        discount: piData?.discount || "",
+        extra_charge: piData?.extra_charge || "",
+        openbalance: piData?.openbalance || "",
         products: preSelectedProducts,
         id_pos: idPos,
     });
@@ -68,6 +67,30 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                 name: piData.company_name,
             });
             setCompanySearch(piData.company_name);
+            setData("company_id", piData.company_id);
+        } else {
+            setIsLoadingCompanies(true);
+            axios.get('/companies/search')
+                .then((response) => {
+                    const companies = response.data;
+                    setCompanies(companies);
+                    setFilteredCompanies(companies);
+                    if (companies.length > 0) {
+                        const defaultCompany = companies.reduce((min, company) =>
+                            company.id < min.id ? company : min
+                        );
+                        setSelectedCompany(defaultCompany);
+                        setCompanySearch(defaultCompany.name);
+                        setData("company_id", defaultCompany.id);
+                    }
+                })
+                .catch(() => {
+                    setCompanies([]);
+                    setFilteredCompanies([]);
+                })
+                .finally(() => {
+                    setIsLoadingCompanies(false);
+                });
         }
     }, [piData]);
 
@@ -84,29 +107,16 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
         borderColor: darkMode ? "#4B5563" : "#D1D5DB",
     };
 
-    // Helper function to check if a value is numeric
-    const isNumeric = (value) => {
-        if (value === "" || value === null || value === undefined) return true;
-        return !isNaN(parseFloat(value)) && isFinite(value);
+    // Validate input for numeric and allowed operators
+    const isValidInput = (value) => {
+        return value === '' || /^[0-9+\-*/=.]*$/.test(value);
     };
 
-    // Handle restricted input
-    const handleRestrictedInput = (value, setter) => {
-        let newValue = value.replace(/[^0-9+\-*/=.]/g, '');
-        const parts = newValue.split(/([+\-*/=])/);
-        newValue = parts
-            .map((part) => {
-                if (!/[+\-*/=]/.test(part)) {
-                    const decimalCount = part.split('.').length - 1;
-                    if (decimalCount > 1) {
-                        const [integer, ...decimals] = part.split('.');
-                        return `${integer}.${decimals.join('')}`;
-                    }
-                }
-                return part;
-            })
-            .join('');
-        setter(newValue);
+    // Helper function to check if a value is numeric or an expression
+    const isNumeric = (value) => {
+        if (value === "" || value === null || value === undefined) return true;
+        if (typeof value === "string" && value.startsWith("=")) return true;
+        return !isNaN(parseFloat(value)) && isFinite(value);
     };
 
     // Handle keydown for evaluating expressions
@@ -128,8 +138,7 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
 
     // Handle product search input change
     const handleProductSearchChange = (value) => {
-        const trimmedValue = value.trim();
-        setProductSearch(trimmedValue);
+        setProductSearch(value);
     };
 
     // Preload image and manage loading state
@@ -292,9 +301,30 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
             (sum, item) => sum + (Number(item.subTotal) || 0),
             0
         );
+
+        let discountValue = data.discount;
+        let extraChargeValue = data.extra_charge;
+
+        if (typeof discountValue === "string" && discountValue.startsWith("=")) {
+            try {
+                // eslint-disable-next-line
+                discountValue = eval(discountValue.slice(1).trim());
+            } catch (error) {
+                discountValue = 0;
+            }
+        }
+        if (typeof extraChargeValue === "string" && extraChargeValue.startsWith("=")) {
+            try {
+                // eslint-disable-next-line
+                extraChargeValue = eval(extraChargeValue.slice(1).trim());
+            } catch (error) {
+                extraChargeValue = 0;
+            }
+        }
+
         setData((prev) => ({
             ...prev,
-            openbalance: (newTotalSubTotal - Number(data.discount) + Number(data.extra_charge)).toFixed(3),
+            openbalance: (newTotalSubTotal - Number(discountValue || 0) + Number(extraChargeValue || 0)).toFixed(3),
         }));
     }, [data.products, data.discount, data.extra_charge]);
 
@@ -376,30 +406,56 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
 
     // Handle table input changes
     const handleTableInputChange = (index, field, value) => {
-        const updatedProducts = [...data.products];
-        let parsedValue = value;
-
-        try {
-            parsedValue = Number(value) || value;
-        } catch (error) {
-            parsedValue = value;
+        if (['ctn', 'amount', 'unit_price', 'subTotal'].includes(field) && !isValidInput(value)) {
+            return; // Prevent updating if input is invalid
         }
 
-        updatedProducts[index] = { ...updatedProducts[index], [field]: parsedValue };
+        const updatedProducts = [...data.products];
+        updatedProducts[index] = { ...updatedProducts[index], [field]: value };
 
         if (field === "amount" || field === "unit_price") {
             const amount = Number(updatedProducts[index].amount) || 0;
             const unitPrice = Number(updatedProducts[index].unit_price) || 0;
-            updatedProducts[index].subTotal = (amount * unitPrice).toFixed(3);
+            if (!isNaN(amount) && !isNaN(unitPrice)) {
+                updatedProducts[index].subTotal = (amount * unitPrice).toFixed(3); // Always round to 3 decimal places
+            }
         } else if (field === "subTotal") {
             const amount = Number(updatedProducts[index].amount) || 0;
             const subTotal = Number(value) || 0;
-            if (amount > 0) {
-                updatedProducts[index].unit_price = (subTotal / amount).toFixed(3);
+            if (amount > 0 && !isNaN(subTotal)) {
+                updatedProducts[index].unit_price = (subTotal / amount).toFixed(3); // Update unit_price if subTotal is changed
             }
         }
 
         setData("products", updatedProducts);
+    };
+
+    useEffect(() => {
+        const updatedProducts = data.products.map((product) => {
+            const amount = Number(product.amount) || 0;
+            const unitPrice = Number(product.unit_price) || 0;
+            const subTotal = !isNaN(amount) && !isNaN(unitPrice) ? (amount * unitPrice).toFixed(3) : product.subTotal;
+            return {
+                ...product,
+                subTotal,
+            };
+        });
+        setData("products", updatedProducts);
+    }, [preSelectedProducts]); // Run when preSelectedProducts changes
+
+    // Handle discount and extra charge changes
+    const handleDiscountChange = (e) => {
+        const value = e.target.value;
+        if (isValidInput(value)) {
+            setData('discount', value);
+        }
+    };
+
+    const handleExtraChargeChange = (e) => {
+        const value = e.target.value;
+        if (isValidInput(value)) {
+            setData('extra_charge', value);
+        }
     };
 
     // Open popup for textarea
@@ -461,96 +517,124 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
         }, 300);
     };
 
-
-    const create_pi = 21;
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        checkPermission(create_pi, async (hasPermission) => {
-            if (!hasPermission) {
-                await showErrorAlert({
-                    title: t("error"),
-                    message: t("you_do_not_have_permission"),
-                    darkMode,
-                });
-                return;
-            }
-
-            if (piNumberError) {
-                await showErrorAlert({
-                    title: t("error"),
-                    message: piNumberError,
-                    darkMode,
-                });
-                return;
-            }
-
-            if (!isNumeric(data.discount) || !isNumeric(data.extra_charge)) {
-                await showErrorAlert({
-                    title: t("error"),
-                    message: t("create_invoice.discount_or_extra_charge_invalid"),
-                    darkMode,
-                });
-                return;
-            }
-
-            post('/pi/store', {
-                onSuccess: async () => {
-                    await showSuccessAlert({
-                        title: t("success"),
-                        message: t("create_invoice.pi_created_successfully"),
-                        darkMode,
-                    });
-                    // Reset form and state
-                    reset();
-                    setData({
-                        pi_number: "",
-                        date: today,
-                        pi_name: "",
-                        pi_name_cn: "",
-                        company_id: "",
-                        discount: 0,
-                        extra_charge: 0,
-                        openbalance: 0,
-                        products: [],
-                        id_pos: [],
-                    });
-                    setPiNumber("");
-                    setSelectedCompany(null);
-                    setCompanySearch("");
-                    setProductSearch("");
-                    setProducts([]);
-                    setIsProductDropdownOpen(false);
-                    // Clear route query parameters
-                    router.visit('/pi/create', { replace: true });
-                },
-                onError: async (errors) => {
-                    let errorMessage = t("create_invoice.error_creating_pi");
-                    if (errors.pi_number) {
-                        errorMessage = t("create_invoice.pi_number_exists");
-                    } else if (errors.company_id) {
-                        errorMessage = t("create_invoice.company_required");
-                    } else if (errors.products) {
-                        errorMessage = t("create_invoice.products_required");
-                    } else if (errors.id_pos) {
-                        errorMessage = t("create_invoice.invalid_id_pos");
-                    } else {
-                        errorMessage = Object.values(errors).join(", ");
-                    }
-                    await showErrorAlert({
-                        title: t("error"),
-                        message: errorMessage,
-                        darkMode,
-                    });
-                },
+        if (piNumberError) {
+            await showErrorAlert({
+                title: t("error"),
+                message: piNumberError,
+                darkMode,
             });
+            return;
+        }
+
+        let finalDiscount = data.discount;
+        let finalExtraCharge = data.extra_charge;
+
+        if (typeof finalDiscount === "string" && finalDiscount.startsWith("=")) {
+            try {
+                // eslint-disable-next-line
+                finalDiscount = eval(finalDiscount.slice(1).trim());
+                if (isNaN(finalDiscount) || !isFinite(finalDiscount)) {
+                    throw new Error("Invalid discount expression");
+                }
+                setData("discount", finalDiscount.toString());
+            } catch (error) {
+                await showErrorAlert({
+                    title: t("error"),
+                    message: t("create_invoice.invalid_discount_expression"),
+                    darkMode,
+                });
+                return;
+            }
+        }
+
+        if (typeof finalExtraCharge === "string" && finalExtraCharge.startsWith("=")) {
+            try {
+                // eslint-disable-next-line
+                finalExtraCharge = eval(finalExtraCharge.slice(1).trim());
+                if (isNaN(finalExtraCharge) || !isFinite(finalExtraCharge)) {
+                    throw new Error("Invalid extra charge expression");
+                }
+                setData("extra_charge", finalExtraCharge.toString());
+            } catch (error) {
+                await showErrorAlert({
+                    title: t("error"),
+                    message: t("create_invoice.invalid_extra_charge_expression"),
+                    darkMode,
+                });
+                return;
+            }
+        }
+
+        if (!isNumeric(finalDiscount) || !isNumeric(finalExtraCharge)) {
+            await showErrorAlert({
+                title: t("error"),
+                message: t("create_invoice.discount_or_extra_charge_invalid"),
+                darkMode,
+            });
+            return;
+        }
+
+        post('/pi/store', {
+            onSuccess: async () => {
+                await showSuccessAlert({
+                    title: t("success"),
+                    message: t("create_invoice.pi_created_successfully"),
+                    darkMode,
+                });
+                reset();
+                setData({
+                    pi_number: "",
+                    date: today,
+                    pi_name: "",
+                    pi_name_cn: "",
+                    company_id: "",
+                    discount: 0,
+                    extra_charge: 0,
+                    openbalance: 0,
+                    products: [],
+                    id_pos: [],
+                });
+                setPiNumber("");
+                setSelectedCompany(null);
+                setCompanySearch("");
+                setProductSearch("");
+                setProducts([]);
+                setIsProductDropdownOpen(false);
+                router.visit('/pi/create', { replace: true });
+            },
+            onError: async (errors) => {
+                let errorMessage = t("create_invoice.error_creating_pi");
+                if (errors.pi_number) {
+                    errorMessage = t("create_invoice.pi_number_exists");
+                } else if (errors.company_id) {
+                    errorMessage = t("create_invoice.company_required");
+                } else if (errors.products) {
+                    errorMessage = t("create_invoice.products_required");
+                } else if (errors.id_pos) {
+                    errorMessage = t("create_invoice.invalid_id_pos");
+                } else {
+                    errorMessage = Object.values(errors).join(", ");
+                }
+                await showErrorAlert({
+                    title: t("error"),
+                    message: errorMessage,
+                    darkMode,
+                });
+            },
         });
     };
 
     // Add global keydown event listener for Ctrl + Enter
     useEffect(() => {
         const handleKeyDown = (e) => {
+            // Check if the active element is a textarea
+            if (e.target.tagName.toLowerCase() === 'textarea') {
+                return; // Allow default Enter behavior in textarea
+            }
             if (e.key === "Enter" && e.ctrlKey) {
                 e.preventDefault();
                 handleSubmit(e);
@@ -818,11 +902,11 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                 )}`}
                                             ></th>
                                             <th
-                                            className={`pl-1 py-3 w-10 text-left ${getDarkModeClass(
-                                                darkMode,
-                                                "text-gray-200",
-                                                "text-white"
-                                            )}`}
+                                                className={`pl-1 py-3 w-10 text-left ${getDarkModeClass(
+                                                    darkMode,
+                                                    "text-gray-200",
+                                                    "text-white"
+                                                )}`}
                                             >
                                                 {t("no")}
                                             </th>
@@ -841,10 +925,7 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                     key={header}
                                                     className={`px-4 py-3 text-left ${header === "create_invoice.code" ||
                                                         header === "create_invoice.name" ? "w-[8rem]" : "" ||
-                                                        header === "create_invoice.remark" ? "w-36" : "" ||
-                                                        header === "create_invoice.photo" ? "w-20" : "" ||
-                                                        header === "create_invoice.unit_price" ? "w-32" : "" ||
-                                                        header === "create_invoice.sub_total" ? "w-32" : ""
+                                                        header === "create_invoice.photo" ? "w-20" : ""
                                                     }
                                                         ${getDarkModeClass(
                                                         darkMode,
@@ -927,6 +1008,7 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                                     </td>
                                                                     <td className="px-4 py-3">
                                                                         {item.code ? (
+                                                                            <Clipboard darkMode={darkMode} textToCopy={item.code}>
                                                                             <Bellypopover darkMode={darkMode}>
                                                                                 <span
                                                                                     className={`label-Purple ${getDarkModeClass(
@@ -941,41 +1023,63 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                                                         : item.code || ""}
                                                                                 </span>
                                                                             </Bellypopover>
+                                                                            </Clipboard>
+                                                                        ) : (
+                                                                            ""
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="p-1 pr-3 pl-3 flex flex-col items-start gap-1">
+                                                                        {item.nameen ? (
+                                                                            <Clipboard darkMode={darkMode} textToCopy={item.nameen}>
+                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                <span
+                                                                                className={`label-green ${darkMode ? "label-green-darkmode" : ""} inline-block w-auto`}
+                                                                                data-belly-caption={item.nameen}
+                                                                                >
+                                                                                {item.nameen.length >  15 ? `${item.nameen.substring(0, 12)}...` : item.nameen}
+                                                                                </span>
+                                                                            </Bellypopover>
+                                                                            </Clipboard>
+                                                                        ) : (
+                                                                            ""
+                                                                        )}
+                                                                        {item.namecn ? (
+                                                                            <Clipboard darkMode={darkMode} textToCopy={item.namecn}>
+                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                <span
+                                                                                className={`label-blue ${darkMode ? "label-blue-darkmode" : ""} inline-block w-auto`}
+                                                                                data-belly-caption={item.namecn}
+                                                                                >
+                                                                                {item.namecn.length > 15 ? `${item.namecn.substring(0, 12)}...` : item.namecn}
+                                                                                </span>
+                                                                            </Bellypopover>
+                                                                            </Clipboard>
+                                                                        ) : (
+                                                                            ""
+                                                                        )}
+                                                                        {item.namekh ? (
+                                                                            <Clipboard darkMode={darkMode} textToCopy={item.namekh}>
+                                                                            <Bellypopover darkMode={darkMode}>
+                                                                                <span
+                                                                                className={`label-pink ${darkMode ? "label-pink-darkmode" : ""} inline-block w-auto`}
+                                                                                data-belly-caption={item.namekh}
+                                                                                >
+                                                                                {item.namekh.length > 15 ? `${item.namekh.substring(0, 12)}...` : item.namekh}
+                                                                                </span>
+                                                                            </Bellypopover>
+                                                                            </Clipboard>
                                                                         ) : (
                                                                             ""
                                                                         )}
                                                                     </td>
                                                                     <td className="px-4 py-3">
-                                                                        <Bellypopover darkMode={darkMode}>
-                                                                            <span
-                                                                                data-belly-caption={`${item.nameen || ''}, ${item.namecn || ''}, ${item.namekh || ''}`}
-                                                                            >
-                                                                                {item.nameen && item.nameen.length > 15
-                                                                                    ? `${item.nameen.substring(0, 12)}...`
-                                                                                    : item.nameen
-                                                                                    ? item.nameen
-                                                                                    : item.namecn && item.namecn.length > 15
-                                                                                    ? `${item.namecn.substring(0, 12)}...`
-                                                                                    : item.namecn
-                                                                                    ? item.namecn
-                                                                                    : item.namekh && item.namekh.length > 15
-                                                                                    ? `${item.namekh.substring(0, 12)}...`
-                                                                                    : item.namekh || ""}
-                                                                            </span>
-                                                                        </Bellypopover>
-                                                                    </td>
-                                                                    <td className="px-4 py-3">
                                                                         <input
                                                                             type="text"
                                                                             value={item.ctn}
-                                                                            onChange={(e) => {
-                                                                                handleRestrictedInput(e.target.value, (value) =>
-                                                                                    handleTableInputChange(index, "ctn", value)
-                                                                                );
-                                                                            }}
+                                                                            onChange={(e) => handleTableInputChange(index, "ctn", e.target.value)}
                                                                             onKeyDown={(e) =>
                                                                                 handleKeyDown(e, item.ctn, (value) =>
-                                                                                    handleTableInputChange(index, "ctn", value)
+                                                                                    isValidInput(value) && handleTableInputChange(index, "ctn", value)
                                                                                 )
                                                                             }
                                                                             className={`w-full p-2 rounded-md border-b focus:outline-none focus:ring-2 focus:ring-[#ff8800] ${getDarkModeClass(
@@ -989,14 +1093,10 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                                         <input
                                                                             type="text"
                                                                             value={item.amount}
-                                                                            onChange={(e) => {
-                                                                                handleRestrictedInput(e.target.value, (value) =>
-                                                                                    handleTableInputChange(index, "amount", value)
-                                                                                );
-                                                                            }}
+                                                                            onChange={(e) => handleTableInputChange(index, "amount", e.target.value)}
                                                                             onKeyDown={(e) =>
                                                                                 handleKeyDown(e, item.amount, (value) =>
-                                                                                    handleTableInputChange(index, "amount", value)
+                                                                                    isValidInput(value) && handleTableInputChange(index, "amount", value)
                                                                                 )
                                                                             }
                                                                             className={`w-full p-2 rounded-md border-b focus:outline-none focus:ring-2 focus:ring-[#ff8800] ${getDarkModeClass(
@@ -1011,14 +1111,10 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                                             <input
                                                                                 type="text"
                                                                                 value={item.unit_price}
-                                                                                onChange={(e) => {
-                                                                                    handleRestrictedInput(e.target.value, (value) =>
-                                                                                        handleTableInputChange(index, "unit_price", value)
-                                                                                    );
-                                                                                }}
+                                                                                onChange={(e) => handleTableInputChange(index, "unit_price", e.target.value)}
                                                                                 onKeyDown={(e) =>
                                                                                     handleKeyDown(e, item.unit_price, (value) =>
-                                                                                        handleTableInputChange(index, "unit_price", value)
+                                                                                        isValidInput(value) && handleTableInputChange(index, "unit_price", value)
                                                                                     )
                                                                                 }
                                                                                 className={`w-full p-2 pr-6 rounded-md border-b focus:outline-none focus:ring-2 focus:ring-[#ff8800] ${getDarkModeClass(
@@ -1041,14 +1137,10 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                                                             <input
                                                                                 type="text"
                                                                                 value={item.subTotal}
-                                                                                onChange={(e) => {
-                                                                                    handleRestrictedInput(e.target.value, (value) =>
-                                                                                        handleTableInputChange(index, "subTotal", value)
-                                                                                    );
-                                                                                }}
+                                                                                onChange={(e) => handleTableInputChange(index, "subTotal", e.target.value)}
                                                                                 onKeyDown={(e) =>
                                                                                     handleKeyDown(e, item.subTotal, (value) =>
-                                                                                        handleTableInputChange(index, "subTotal", value)
+                                                                                        isValidInput(value) && handleTableInputChange(index, "subTotal", value)
                                                                                     )
                                                                                 }
                                                                                 className={`w-full p-2 rounded-md border-b focus:outline-none focus:ring-2 focus:ring-[#ff8800] ${getDarkModeClass(
@@ -1453,8 +1545,8 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                 <input
                                     type="text"
                                     value={data.discount}
-                                    onChange={(e) => handleRestrictedInput(e.target.value, (value) => setData("discount", value))}
-                                    onKeyDown={(e) => handleKeyDown(e, data.discount, (value) => setData("discount", value))}
+                                    onChange={handleDiscountChange}
+                                    onKeyDown={(e) => handleKeyDown(e, data.discount, (value) => isValidInput(value) && setData('discount', value))}
                                     className={`w-full p-2 pr-6 rounded-md border-b focus:outline-none focus:ring-2 focus:ring-[#ff8800] text-right ${getDarkModeClass(
                                         darkMode,
                                         "bg-[#2D2D2D] text-gray-300 border-gray-700 placeholder-gray-500",
@@ -1486,8 +1578,8 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                                 <input
                                     type="text"
                                     value={data.extra_charge}
-                                    onChange={(e) => handleRestrictedInput(e.target.value, (value) => setData("extra_charge", value))}
-                                    onKeyDown={(e) => handleKeyDown(e, data.extra_charge, (value) => setData("extra_charge", value))}
+                                    onChange={handleExtraChargeChange}
+                                    onKeyDown={(e) => handleKeyDown(e, data.extra_charge, (value) => isValidInput(value) && setData('extra_charge', value))}
                                     className={`w-full p-2 pr-6 rounded-md border-b focus:outline-none focus:ring-2 focus:ring-[#ff8800] text-right ${getDarkModeClass(
                                         darkMode,
                                         "bg-[#2D2D2D] text-gray-300 border-gray-700 placeholder-gray-500",
@@ -1579,36 +1671,16 @@ export default function ProductInvoiceForm({ darkMode, auth, preSelectedProducts
                             )}`}>
                                 {t("remark")}
                             </h3>
-                            <div className="flex-1 overflow-hidden">
-                                <Editor
-                                    tinymceScriptSrc="https://cdn.jsdelivr.net/npm/tinymce@5/tinymce.min.js"
+                            <div className="flex-1 overflow-hidden p-4">
+                                <textarea
                                     value={popupText}
-                                    onEditorChange={editor => handlePopupTextChange(editor)}
-                                    init={{
-                                        height: "300px",
-                                        menubar: false,
-                                        branding: false,
-                                        skin: darkMode ? "oxide-dark" : "oxide",
-                                        content_css: darkMode ? "dark" : "default",
-                                        plugins: [
-                                            'advlist autolink lists link image charmap print preview anchor',
-                                            'searchreplace visualblocks code fullscreen',
-                                            'insertdatetime media table paste code help wordcount'
-                                        ],
-                                        toolbar: 'undo redo | formatselect | bold italic backcolor | ' +
-                                            'alignleft aligncenter alignright alignjustify | ' +
-                                            'bullist numlist outdent indent | removeformat | help',
-                                        content_style: `
-                                            body {
-                                                font-family: Arial, sans-serif;
-                                                font-size: 14px;
-                                                line-height: 1.6;
-                                                color: ${darkMode ? '#e2e2e2' : '#333333'};
-                                                background-color: ${darkMode ? '#2D2D2D' : '#ffffff'};
-                                                margin: 8px;
-                                            }
-                                        `,
-                                    }}
+                                    onChange={(e) => handlePopupTextChange(e.target.value)}
+                                    className={`w-full h-[300px] p-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-[#ff8800] resize-none ${getDarkModeClass(
+                                        darkMode,
+                                        "bg-[#2D2D2D] text-gray-300 border-gray-700 placeholder-gray-500",
+                                        "bg-white text-gray-900 border-gray-300 placeholder-gray-400"
+                                    )}`}
+                                    placeholder={t("create_invoice.enter_remark")}
                                 />
                             </div>
                             <div className={`p-4 flex justify-end gap-2 ${getDarkModeClass(
